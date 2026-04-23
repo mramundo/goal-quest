@@ -1,0 +1,83 @@
+{
+  "generale": {
+    "label": "Generale",
+    "presets": [
+      { "action": "Piccolo passo",       "points": 2 },
+      { "action": "Progresso solido",    "points": 5 },
+      { "action": "Salto di qualità",    "points": 10 },
+      { "action": "Impresa del giorno",  "points": 20 }
+    ]
+  },
+  "lettura": {
+    "label": "Lettura",
+    "presets": [
+      { "action": "Letti 15 minuti",     "points": 2 },
+      { "action": "Letto un capitolo",   "points": 5 },
+      { "action": "Finito un saggio breve", "points": 12 },
+      { "action": "Finito un libro",     "points": 20 }
+    ]
+  },
+  "sport": {
+    "label": "Sport",
+    "presets": [
+      { "action": "Allenamento leggero", "points": 2 },
+      { "action": "Allenamento completo","points": 5 },
+      { "action": "Sessione intensa",    "points": 8 },
+      { "action": "Gara o lunga uscita", "points": 15 }
+    ]
+  },
+  "salute": {
+    "label": "Salute",
+    "presets": [
+      { "action": "Bevuto 2L d'acqua",   "points": 2 },
+      { "action": "Mangiato sano",       "points": 3 },
+      { "action": "Sonno regolare (7h+)","points": 5 },
+      { "action": "Giornata senza scuse","points": 10 }
+    ]
+  },
+  "risparmio": {
+    "label": "Risparmio",
+    "presets": [
+      { "action": "Spesa evitata",       "points": 2 },
+      { "action": "Messi 10€ da parte",  "points": 4 },
+      { "action": "Messi 50€ nel forziere", "points": 10 },
+      { "action": "Versamento mensile",  "points": 20 }
+    ]
+  },
+  "studio": {
+    "label": "Studio",
+    "presets": [
+      { "action": "30 minuti focus",     "points": 3 },
+      { "action": "Un'ora di studio",    "points": 6 },
+      { "action": "Esame o test passato","points": 15 },
+      { "action": "Giornata da scriba",  "points": 12 }
+    ]
+  },
+  "creativita": {
+    "label": "Creatività",
+    "presets": [
+      { "action": "Schizzo/idea annotata","points": 2 },
+      { "action": "Sessione creativa",   "points": 5 },
+      { "action": "Opera finita",        "points": 12 },
+      { "action": "Pubblicata/condivisa","points": 15 }
+    ]
+  },
+  "viaggi": {
+    "label": "Viaggi",
+    "presets": [
+      { "action": "Ricerca destinazione","points": 2 },
+      { "action": "Prenotazione confermata","points": 8 },
+      { "action": "Giornata di viaggio", "points": 12 },
+      { "action": "Nuovo luogo scoperto","points": 15 }
+    ]
+  },
+  "casa": {
+    "label": "Casa",
+    "presets": [
+      { "action": "Riordinato un angolo","points": 3 },
+      { "action": "Pulizia profonda",    "points": 6 },
+      { "action": "Riparazione",         "points": 8 },
+      { "action": "Progetto completato", "points": 15 }
+    ]
+  }
+}

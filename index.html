@@ -1,24 +1,228 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="it">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#2a1d0e" />
-    <title>Goal Quest — La tua crociata verso gli obiettivi</title>
-    <meta
-      name="description"
-      content="Crea gruppi, obiettivi e conquista forzieri. Una piattaforma di gamification a tema medievale per raggiungere i tuoi traguardi."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;900&family=Inter:wght@400;500;600;700&family=UnifrakturCook:wght@700&display=swap"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a1410" />
+  <meta name="description" content="Goal Quest — trasforma i tuoi obiettivi in una cronaca medievale di imprese, tappe e forzieri." />
+  <title>Goal Quest — La tua cronaca di obiettivi</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+
+  <link rel="stylesheet" href="styles/main.css" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Salta al contenuto</a>
+
+  <header class="topbar" role="banner">
+    <div class="topbar__inner">
+      <a class="brand" href="#">
+        <span class="brand__dot" aria-hidden="true"></span>
+        <span class="brand__name">Goal <strong>Quest</strong></span>
+      </a>
+
+      <nav class="nav" aria-label="Navigazione principale">
+        <a href="#quests-section" class="nav__link">Quest</a>
+        <a href="#hall-section" class="nav__link">Sala d'Onore</a>
+        <a href="#scroll-section" class="nav__link">Pergamena</a>
+      </nav>
+
+      <div class="topbar__actions">
+        <span class="hero-stat" id="heroStat" aria-live="polite">Lv 1 · Novizio</span>
+
+        <div class="palette-picker">
+          <button class="icon-btn palette-picker__toggle" id="paletteToggle"
+                  aria-label="Cambia palette" title="Cambia palette"
+                  aria-haspopup="true" aria-expanded="false">
+            <span class="palette-picker__swatches" aria-hidden="true">
+              <span class="palette-picker__sw" style="background: var(--accent)"></span>
+              <span class="palette-picker__sw" style="background: var(--accent-2)"></span>
+              <span class="palette-picker__sw" style="background: var(--accent-3)"></span>
+              <span class="palette-picker__sw" style="background: var(--bg-elev)"></span>
+            </span>
+          </button>
+          <div class="palette-picker__menu" id="paletteMenu" role="menu" hidden>
+            <button class="palette-picker__option" role="menuitem" data-palette="pergamena">
+              <span class="palette-picker__preview" aria-hidden="true">
+                <span style="background:#2a1f14"></span><span style="background:#c9a24b"></span>
+                <span style="background:#8b4513"></span><span style="background:#d4b88a"></span>
+              </span>
+              <span class="palette-picker__name">Pergamena <em>(default)</em></span>
+            </button>
+            <button class="palette-picker__option" role="menuitem" data-palette="taverna">
+              <span class="palette-picker__preview" aria-hidden="true">
+                <span style="background:#1a1008"></span><span style="background:#e8833a"></span>
+                <span style="background:#c17e36"></span><span style="background:#b33a2a"></span>
+              </span>
+              <span class="palette-picker__name">Taverna</span>
+            </button>
+            <button class="palette-picker__option" role="menuitem" data-palette="foresta-elfica">
+              <span class="palette-picker__preview" aria-hidden="true">
+                <span style="background:#0d1a12"></span><span style="background:#7db87d"></span>
+                <span style="background:#d4af37"></span><span style="background:#4a7c59"></span>
+              </span>
+              <span class="palette-picker__name">Foresta Elfica</span>
+            </button>
+            <button class="palette-picker__option" role="menuitem" data-palette="regno-ghiaccio">
+              <span class="palette-picker__preview" aria-hidden="true">
+                <span style="background:#0a1420"></span><span style="background:#7ec8e3"></span>
+                <span style="background:#c0d8e8"></span><span style="background:#4a6b8a"></span>
+              </span>
+              <span class="palette-picker__name">Regno di Ghiaccio</span>
+            </button>
+          </div>
+        </div>
+
+        <button class="icon-btn" id="themeToggle" aria-label="Alterna luce / buio" title="Alterna luce / buio">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__bg" aria-hidden="true"></div>
+      <div class="hero__content">
+        <span class="badge">
+          <span class="badge__pulse" aria-hidden="true"></span>
+          <span id="heroGreeting">La tua cronaca è viva</span>
+        </span>
+        <h1 id="hero-title" class="hero__title">
+          I tuoi obiettivi,<br/>una crociata personale.
+        </h1>
+        <p class="hero__lead">
+          Forgia quest, spezzale in tappe, promettiti forzieri. Ogni azione
+          registrata diventa punti esperienza: sali di livello e scala la Sala d'Onore.
+        </p>
+        <p class="hero__monitoring">
+          Hai
+          <strong id="heroQuests">—</strong> quest attive, <strong id="heroXp">—</strong> XP
+          totali e hai sbloccato <strong id="heroMilestones">—</strong> forzieri.
+        </p>
+        <div class="hero__actions">
+          <button class="btn btn--primary" id="newQuestBtn">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            Forgia una nuova quest
+          </button>
+          <a href="#quests-section" class="btn btn--ghost">Sfoglia le quest</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="quests-section" class="section" aria-labelledby="quests-title">
+      <div class="section__header">
+        <div>
+          <h2 id="quests-title" class="section__title">Le tue quest</h2>
+          <p class="section__subtitle">
+            Ogni quest ha un obiettivo finale da 100 punti, tappe intermedie e premi configurabili.
+          </p>
+        </div>
+        <div class="filters" role="tablist" aria-label="Filtra per stato">
+          <button class="chip chip--active" role="tab" aria-selected="true" data-filter="all">Tutte</button>
+          <button class="chip" role="tab" aria-selected="false" data-filter="active">In corso</button>
+          <button class="chip" role="tab" aria-selected="false" data-filter="done">Completate</button>
+        </div>
+      </div>
+
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="questsSearch" placeholder="Cerca una quest (es. libri, corsa, risparmi)…" aria-label="Cerca quest" />
+      </div>
+
+      <ol class="quest-list" id="questList" aria-live="polite"></ol>
+
+      <p class="empty" id="questsEmpty" hidden>
+        Nessuna quest qui. <button class="btn-inline" data-open-new-quest>Forgiala tu, cavaliere.</button>
+      </p>
+    </section>
+
+    <section id="hall-section" class="section" aria-labelledby="hall-title">
+      <div class="section__header">
+        <div>
+          <h2 id="hall-title" class="section__title">Sala d'Onore</h2>
+          <p class="section__subtitle">
+            I campioni del regno. Supera i loro XP per conquistare la tua posizione.
+          </p>
+        </div>
+        <div class="legend" aria-label="Legenda rango">
+          <span class="legend__item"><i class="dot dot--gold"></i>Oro</span>
+          <span class="legend__item"><i class="dot dot--silver"></i>Argento</span>
+          <span class="legend__item"><i class="dot dot--bronze"></i>Bronzo</span>
+        </div>
+      </div>
+
+      <ol class="hall-list" id="hallList"></ol>
+    </section>
+
+    <section id="scroll-section" class="section" aria-labelledby="scroll-title">
+      <div class="section__header">
+        <div>
+          <h2 id="scroll-title" class="section__title">Pergamena delle gesta</h2>
+          <p class="section__subtitle">
+            Le ultime azioni registrate, in ordine cronologico inverso.
+          </p>
+        </div>
+      </div>
+
+      <ol class="log-list" id="logList"></ol>
+      <p class="empty" id="logEmpty" hidden>Non hai ancora scritto nulla sulla pergamena.</p>
+    </section>
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <div class="footer__inner-wrap">
+      <div class="footer__sources">
+        <div class="footer__sources-col">
+          <h3 class="footer__sources-label">Come funziona</h3>
+          <p>Ogni quest vale 100 punti. Definisci le tappe (1-99pt), ciascuna con un premio. Logga le azioni, cresce la barra, si sblocca il forziere. Il tuo progresso vive nel browser (localStorage).</p>
+        </div>
+        <div class="footer__sources-col">
+          <h3 class="footer__sources-label">Temi disponibili</h3>
+          <p>Pergamena, Taverna, Foresta Elfica, Regno di Ghiaccio. Ognuno in versione chiara e scura. Il picker in alto a destra cambia palette al volo.</p>
+        </div>
+      </div>
+      <div class="footer__meta-row">
+        <p>© <span id="year"></span> Goal Quest — progetto open-source, dati locali al browser.</p>
+        <p class="footer__meta">Dati: <span id="footerData">localStorage</span></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Quest detail drawer -->
+  <dialog class="drawer" id="questDrawer" aria-label="Dettaglio quest"></dialog>
+
+  <!-- Quest form modal -->
+  <dialog class="modal" id="questModal" aria-label="Forgia una nuova quest"></dialog>
+
+  <!-- Progress log modal -->
+  <dialog class="modal modal--small" id="progressModal" aria-label="Registra un'azione"></dialog>
+
+  <!-- Celebration overlay -->
+  <dialog class="celebration" id="celebration" aria-label="Forziere aperto">
+    <div class="celebration__card">
+      <div class="celebration__chest" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="96" height="96" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="8" y="22" width="48" height="32" rx="2"/>
+          <path d="M8 32h48"/>
+          <path d="M8 22c0-8 8-10 24-10s24 2 24 10"/>
+          <rect x="28" y="30" width="8" height="8" rx="1" fill="currentColor" fill-opacity=".2"/>
+          <path d="M32 30v8"/>
+        </svg>
+      </div>
+      <p class="celebration__label">Premio sbloccato</p>
+      <h3 class="celebration__title" id="celebrationTitle">—</h3>
+      <p class="celebration__desc" id="celebrationDesc">—</p>
+      <button class="btn btn--primary" id="celebrationDismiss">Continua la quest</button>
+    </div>
+  </dialog>
+
+  <script type="module" src="scripts/app.js"></script>
+</body>
 </html>

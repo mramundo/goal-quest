@@ -1,0 +1,38 @@
+{
+  "updated": "2026-04-23",
+  "items": [
+    {
+      "title": "Leggere 12 libri entro l'anno",
+      "description": "Una biblioteca non è fatta di titoli, ma di ore rubate al rumore. Uno al mese.",
+      "icon": "📚",
+      "topic": "lettura",
+      "milestones": [
+        { "points": 25, "title": "Primo volume archiviato",  "reward": "Un'ora in libreria, senza fretta" },
+        { "points": 50, "title": "Metà dell'anno, metà scaffale", "reward": "Compra il libro che da mesi guardi online" },
+        { "points": 75, "title": "Cronista instancabile",   "reward": "Una serata in un caffè letterario" }
+      ]
+    },
+    {
+      "title": "30 sessioni di allenamento",
+      "description": "Non serve l'armatura del campione, serve costanza: tre uscite a settimana per dieci settimane.",
+      "icon": "🏃",
+      "topic": "sport",
+      "milestones": [
+        { "points": 33, "title": "Il corpo ricorda il ritmo", "reward": "Scarpe da corsa nuove" },
+        { "points": 66, "title": "Fiato da veterano",         "reward": "Iscrizione a una gara locale" },
+        { "points": 99, "title": "Cavaliere instancabile",    "reward": "Una giornata in terme o SPA" }
+      ]
+    },
+    {
+      "title": "Mille monete nel forziere",
+      "description": "Riempire il forziere con 1000€ di risparmi extra: piccoli versamenti che diventano tesoro.",
+      "icon": "💰",
+      "topic": "risparmio",
+      "milestones": [
+        { "points": 20, "title": "Primo sigillo d'oro",  "reward": "Conferma: il forziere è stato aperto" },
+        { "points": 50, "title": "Metà bottino",         "reward": "Concediti una piccola spesa voluttuaria" },
+        { "points": 80, "title": "Quasi leggendari",     "reward": "Prenota l'esperienza che rimandavi" }
+      ]
+    }
+  ]
+}

@@ -1,192 +1,95 @@
-# ⚔️ Goal Quest
+# Goal Quest
 
-> Una piattaforma di gamification a tema medievale per incentivare il raggiungimento
-> degli obiettivi. Crea gilde, scrivi quest, spezzale in tappe, conquista forzieri.
+Una cronaca medievale per trasformare i tuoi obiettivi in imprese: quest, tappe intermedie e forzieri.
+Ogni obiettivo vale **100 punti**; definisci le tappe (1–99pt) e il premio che ti regalerai al raggiungimento.
+Le azioni registrate diventano XP, ti fanno salire di rango nella **Sala d'Onore** e scrivono la tua
+**Pergamena delle gesta**.
 
-Questa è una **POC** (proof of concept) costruita come SPA con React + Vite, che
-usa un repository GitHub come database (JSON + GitHub API) e viene deployata su
-GitHub Pages. Nessuna infrastruttura a pagamento.
+→ Live: https://mramundo.github.io/goal-quest/
 
 ---
 
-## 🧭 Funzionalità
+## Stack
 
-- **Login** con username + PIN (hash SHA-256) salvato in `data/users.json`.
-- **Registrazione** tramite GitHub issue: il form compila un template, l'admin
-  aggiunge la label `approved` e una GitHub Action appende l'utente.
-- **Gilde** pubbliche o private (con PIN) tematiche.
-- **Quest** con obiettivo finale su scala 0–100 e **N milestone intermedie**
-  (1–99), ognuna con un premio configurabile.
-- **Sistema di suggerimenti premi** basato sul testo dell'obiettivo (euristica
-  keyword → pool di premi a tema).
-- **Log progressi** con azioni quantificate in punti (+ preset suggeriti).
-- **Leaderboard** per quest e **celebrazione** animata al raggiungimento delle
-  milestone.
-- **XP / livelli** cumulati sull'utente, con titoli medievali
-  (Novizio → Leggenda).
-- **4 temi** (Pergamena, Taverna, Foresta Elfica, Regno di Ghiaccio) ciascuno
-  con variante light e dark. Il tema si applica cambiando un attributo sul
-  `<html>`, nessun re-render del tree.
-- **Mobile-first**, con bottom navigation su schermi piccoli e safe-area
-  insets.
+Nessun build step, nessun framework. Tutto ciò che ti serve è un browser moderno.
 
-## 🏗️ Architettura
+- **HTML5** + **CSS custom properties** (design system a token, 4 palette × dark/light)
+- **ES modules** caricati direttamente dal browser (`<script type="module">`)
+- **localStorage** come unica fonte di verità (dati privati, legati al browser)
+- **GitHub Pages** per il deploy (workflow che carica l'intera repo senza compilare)
 
-```
-┌──────────────────┐      raw.githubusercontent.com       ┌──────────────┐
-│  SPA (Vite/React)│ ────────────────────── READ ─────────▶│ data/*.json  │
-│  GitHub Pages    │                                        │   (main)     │
-│  mramundo.github │ ──── PUT /repos/.../contents ─────────▶│              │
-│  .io/goal-quest  │       (Bearer PAT in bundle)           └──────────────┘
-└──────────────────┘
-```
+## Temi
 
-- **Lettura**: via `raw.githubusercontent.com` senza auth, cache disattivata.
-- **Scrittura**: GitHub Contents API con PAT fine-grained (nel bundle).
-- **Cache**: in-memory + `localStorage` come write-through.
-- **Concorrenza**: retry automatico su conflitto SHA (3 tentativi).
+| Palette | Atmosfera |
+| --- | --- |
+| **Pergamena** *(default)* | Marroni caldi, oro scriba, inchiostro |
+| **Taverna** | Rame, birra, candele tremolanti |
+| **Foresta Elfica** | Verdi profondi, argento, luce filtrata |
+| **Regno di Ghiaccio** | Blu di ghiacciaio, indaco, neve |
 
-### ⚠️ Sicurezza (POC)
+Ogni palette ha modalità chiara e scura. Il picker in alto a destra cambia palette al volo.
 
-Il PAT viene incluso nel bundle JavaScript. Chi ispeziona il sito può
-estrarlo e scrivere direttamente sul repo. Mitigazioni per questa POC:
+## Come funziona
 
-1. Usa un PAT **fine-grained** scoped al **solo** repo `goal-quest`.
-2. Dai al PAT **solo** il permesso `Contents: Read and write`.
-3. Non mettere dati sensibili nei JSON: qui il PIN è SHA-256, ma la rinascita
-   è banale se il PIN è debole.
+1. **Forgia una quest**: dai un nome, scegli un'icona, descrivi brevemente l'impresa.
+2. **Definisci i forzieri**: ogni tappa (1–99 pt) ha un premio che ti regalerai al raggiungimento.
+3. **Registra le azioni**: preset per tema oppure azione libera con slider dei punti.
+4. **Sali nella Sala d'Onore**: supera gli XP dei campioni leggendari e scala la classifica.
+5. **Rileggi la Pergamena**: ogni azione registrata resta per sempre nella tua cronaca.
 
-Per produzione: mettere le scritture dietro un proxy (Cloudflare Worker,
-Supabase Edge Function), o migrare a un backend vero (Supabase).
+## Sviluppo locale
 
-## 🚀 Setup (prima volta)
-
-### 1. Clona e installa
+Serve solo un server HTTP statico (gli ES modules richiedono un'origin, non `file://`).
 
 ```bash
-git clone https://github.com/mramundo/goal-quest.git
-cd goal-quest
-npm install
+# Python 3
+python3 -m http.server 8000
+
+# oppure con Node
+npx serve .
 ```
 
-### 2. Crea il PAT
+Apri `http://localhost:8000` e sei operativo.
 
-1. Vai su <https://github.com/settings/tokens?type=beta>
-2. "Generate new token" → **Fine-grained**
-3. Repository access → *Only select repositories* → `goal-quest`
-4. Repository permissions → **Contents: Read and write**
-5. Copia il token (inizia con `github_pat_...`)
-
-### 3. Configura `.env.local`
-
-```bash
-cp .env.example .env.local
-# apri .env.local e incolla VITE_GITHUB_TOKEN=github_pat_xxx
-```
-
-### 4. Avvio in locale
-
-```bash
-npm run dev
-```
-
-App su <http://localhost:5173/goal-quest/>.
-
-Login demo: `cavaliere` / PIN `1234`.
-
-### 5. Deploy su GitHub Pages
-
-1. Pusha il repo su `main`.
-2. Su GitHub: **Settings → Pages → Source: GitHub Actions**.
-3. Su GitHub: **Settings → Secrets and variables → Actions → New repository
-   secret**:
-   - Nome: `GOAL_QUEST_WRITE_TOKEN`
-   - Valore: il PAT creato al punto 2.
-4. Il workflow `.github/workflows/deploy.yml` farà build + deploy ad ogni
-   push su `main`.
-5. Sito: <https://mramundo.github.io/goal-quest/>.
-
-## 👑 Gestire i nuovi utenti
-
-Quando un aspirante cavaliere clicca "Richiedi accesso al Regno":
-
-1. Si apre una issue con i suoi dati + **hash SHA-256** del PIN.
-2. Come admin, apri la issue e controllala.
-3. Se vuoi approvare → aggiungi la label **`approved`**.
-4. Il workflow `approve-user.yml` aggiunge l'utente a `data/users.json` e
-   chiude l'issue.
-5. L'utente può loggarsi con il PIN originale (che solo lui conosce).
-
-Per respingere una richiesta, chiudi l'issue senza aggiungere la label.
-
-### Approvazione manuale (senza workflow)
-
-Se preferisci gestire a mano, aggiungi una riga a `data/users.json`:
-
-```json
-{
-  "id": "usr_xxxxxxxx",
-  "username": "merlino42",
-  "displayName": "Merlino il Saggio",
-  "pinHash": "<lo copi dal form dell'issue>",
-  "createdAt": "2026-04-22T10:00:00.000Z",
-  "totalXp": 0,
-  "title": "Novizio"
-}
-```
-
-## 🗂️ Struttura
+## Struttura
 
 ```
 goal-quest/
-├── data/                        # "Database": JSON che vengono letti/scritti a runtime
-│   ├── users.json
-│   ├── groups.json
-│   ├── memberships.json
-│   ├── goals.json
-│   └── progress.json
-├── .github/
-│   ├── ISSUE_TEMPLATE/registration.yml
-│   └── workflows/
-│       ├── deploy.yml           # build + pages deploy
-│       └── approve-user.yml     # auto-approva con label "approved"
-├── public/favicon.svg
-├── src/
-│   ├── components/
-│   │   ├── layout/              # AppShell, ThemeProvider, ThemeSwitcher, RouteGuard
-│   │   └── ui/                  # Button, Card, Dialog, Input, Progress, Badge, ...
-│   ├── lib/
-│   │   ├── config.ts            # env + endpoint builder
-│   │   ├── github-api.ts        # wrapper Contents API
-│   │   ├── db.ts                # CRUD sopra le collection
-│   │   ├── queries.ts           # aggregazioni: leaderboard, suggerimenti premi
-│   │   └── utils.ts             # cn, uid, sha256, titleForXp, levelForXp
-│   ├── pages/                   # Una pagina per view
-│   ├── store/                   # Zustand stores: auth, theme
-│   ├── types/                   # Tipi di dominio
-│   ├── App.tsx
-│   ├── main.tsx
-│   └── index.css                # Theme tokens per le 4 palette
-├── .env.example
-├── index.html
-├── package.json
-├── tailwind.config.js
-└── vite.config.ts
+├── index.html              # markup principale (header, hero, sezioni, dialog)
+├── styles/
+│   └── main.css            # design system (4 palette × dark/light)
+├── scripts/
+│   ├── app.js              # entry: tema, store, boot, livelli
+│   ├── quests.js           # lista + drawer + modale "Forgia quest"
+│   ├── progress.js         # modale "Registra azione", celebrazione, pergamena
+│   └── hall.js             # Sala d'Onore
+├── data/
+│   ├── quests.seed.json    # esempi iniziali (solo al primo avvio)
+│   ├── heroes.seed.json    # campioni leggendari della Sala d'Onore
+│   └── actions-library.json# preset azioni per tema
+├── assets/
+│   └── favicon.svg
+└── .github/workflows/
+    └── pages.yml           # deploy GitHub Pages
 ```
 
-## 🧪 Demo rapida
+## Dati
 
-```
-Username: cavaliere
-PIN:      1234
-```
+Tutto resta nel tuo browser sotto questi key di `localStorage`:
 
-Da loggato puoi:
-- Fondare una gilda e invitare l'autore via PIN.
-- Creare una quest con N milestone, il sistema ti suggerisce premi.
-- Loggare progressi: vedrai la tua XP salire e i forzieri sbloccarsi con
-  animazione celebrativa.
+- `gq-quests` — quest con milestones
+- `gq-log` — cronologia azioni
+- `gq-profile` — nome/titolo del cavaliere
+- `gq-palette`, `gq-mode` — preferenze di tema
+- `gq-seeded` — flag "abbiamo già mostrato gli esempi iniziali"
 
-## 📜 Licenza
+Shortcut segreto: `Ctrl + Shift + E` esporta un JSON con tutto lo stato (utile per backup manuali).
 
-MIT.
+## Deploy
+
+Ogni push su `main` rigenera il sito. Il workflow è [`.github/workflows/pages.yml`](.github/workflows/pages.yml) e
+si limita a caricare l'intera repo come artifact di Pages — nessun build, nessun framework da compilare.
+
+## Licenza
+
+MIT. Gioca onestamente.
