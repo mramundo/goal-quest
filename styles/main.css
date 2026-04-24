@@ -1321,11 +1321,15 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
   display: flex; flex-direction: column; gap: 10px;
   pointer-events: none;
   max-width: calc(100% - 28px);
+  /* Keep the stack right-anchored without taking horizontal space. */
+  width: auto;
 }
 .toast {
   pointer-events: auto;
   min-width: 260px;
   max-width: 380px;
+  width: 100%;
+  box-sizing: border-box;
   padding: 14px 16px;
   background: var(--bg-elev);
   border: 1px solid var(--border-strong);
@@ -1401,6 +1405,24 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
   .section__header { align-items: flex-start; }
 }
 @media (max-width: 680px) {
+  /* Toast stack: anchor to both sides and let each card flex to the
+     container — removes the 260px minimum that was poking off-screen
+     and floating over the hero stats on narrow viewports. */
+  .toast-container {
+    top: calc(var(--header-h) + 8px);
+    left: 10px; right: 10px;
+    max-width: none;
+  }
+  .toast {
+    min-width: 0;
+    max-width: 100%;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .toast__icon { width: 30px; height: 30px; }
+  .toast__title { font-size: .88rem; }
+  .toast__desc { font-size: .78rem; }
+
   main { padding-inline: 16px; }
   .hero { padding: 28px 0 8px; }
   .hero__content { gap: 12px; }
