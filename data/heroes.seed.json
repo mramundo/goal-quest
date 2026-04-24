@@ -1,15 +1,15 @@
 {
-  "updated": "2026-04-23",
+  "updated": "2026-04-24",
   "items": [
-    { "id": "h-galahad",  "name": "Sir Galahad",      "title": "Cercatore del Graal",         "xp": 12800 },
-    { "id": "h-lyrael",   "name": "Lyrael d'Aldaron", "title": "Arciera degli Elfi Silvani",  "xp": 9600 },
-    { "id": "h-thora",    "name": "Thora Pietraforte","title": "Guardiana delle Torri del Nord", "xp": 7400 },
-    { "id": "h-corwin",   "name": "Maestro Corwin",   "title": "Arcimago della Biblioteca Bruna", "xp": 5200 },
-    { "id": "h-ashlyn",   "name": "Ashlyn Ventolesto","title": "Staffetta della Lega Mercantile", "xp": 3800 },
-    { "id": "h-brant",    "name": "Brant di Cuorfranco","title": "Oste della Taverna del Grifone", "xp": 2400 },
-    { "id": "h-ivor",     "name": "Ivor del Ghiaccio","title": "Esploratore dei Picchi Gelati", "xp": 1500 },
-    { "id": "h-mira",     "name": "Mira Fiordiquercia","title": "Erborista del Bosco Antico",  "xp": 900 },
-    { "id": "h-percy",    "name": "Percy lo Scriba",  "title": "Cronista dei Piccoli Villaggi", "xp": 400 },
-    { "id": "h-tomas",    "name": "Tomas il Novizio", "title": "Apprendista della Cappella",   "xp": 120 }
+    { "id": "h-galahad", "name": "Sir Galahad",       "title": "Seeker of the Grail",              "xp": 12800 },
+    { "id": "h-lyrael",  "name": "Lyrael of Aldaron", "title": "Archer of the Silvan Elves",       "xp": 9600 },
+    { "id": "h-thora",   "name": "Thora Stonehold",   "title": "Warden of the Northern Towers",    "xp": 7400 },
+    { "id": "h-corwin",  "name": "Master Corwin",     "title": "Archmage of the Umber Library",    "xp": 5200 },
+    { "id": "h-ashlyn",  "name": "Ashlyn Swiftwind",  "title": "Courier of the Merchants' League", "xp": 3800 },
+    { "id": "h-brant",   "name": "Brant Trueheart",   "title": "Keeper of the Griffin Tavern",     "xp": 2400 },
+    { "id": "h-ivor",    "name": "Ivor of the Ice",   "title": "Scout of the Frozen Peaks",        "xp": 1500 },
+    { "id": "h-mira",    "name": "Mira Oakleaf",      "title": "Herbalist of the Elder Wood",      "xp": 900 },
+    { "id": "h-percy",   "name": "Percy the Scribe",  "title": "Chronicler of the Small Villages", "xp": 400 },
+    { "id": "h-tomas",   "name": "Tomas the Novice",  "title": "Apprentice of the Chapel",         "xp": 120 }
   ]
 }

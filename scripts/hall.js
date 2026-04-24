@@ -1,12 +1,11 @@
 /* =========================================================
    Goal Quest — Hall of Fame
-   Mescola gli "eroi seed" del regno con lo stato corrente del
-   giocatore (XP totale dal log) e produce la classifica.
+   Blends seeded heroes with the player's current XP (sum of
+   logged points) and produces a ranked leaderboard. No levels,
+   no synthetic titles — just names, titles from seed, and XP.
    ========================================================= */
 
-import {
-  $, escapeHtml, fmt, computeMetrics, levelFromXp
-} from './app.js';
+import { $, escapeHtml, fmt, computeMetrics } from './app.js';
 
 let refs = {};
 let storeRef = null;
@@ -27,16 +26,14 @@ function render() {
   const quests  = storeRef.get('quests') ?? [];
   const log     = storeRef.get('log') ?? [];
   const heroes  = storeRef.get('heroes') ?? [];
-  const profile = storeRef.get('profile') ?? { name: 'Tu', title: '' };
+  const profile = storeRef.get('profile') ?? {};
 
   const m = computeMetrics(quests, log);
-  const lvl = levelFromXp(m.totalXp);
 
-  // Tu come "eroe" aggiunto alla classifica
   const you = {
     id: 'you',
-    name: profile.name || 'Tu',
-    title: profile.title || lvl.title,
+    name: profile.name || 'Traveler',
+    title: profile.title || 'Your chronicle',
     xp: m.totalXp,
     you: true,
   };
@@ -53,15 +50,14 @@ function render() {
     if (h.you) li.dataset.you = 'true';
     li.style.animationDelay = `${Math.min(i, 10) * 30}ms`;
 
-    const subtitle = h.you
-      ? `${h.title ?? '—'} · Lv ${lvl.level}`
-      : (h.title ?? '—');
-
     li.innerHTML = `
       <div class="hall-row__rank">${rank}</div>
       <div class="hall-row__body">
-        <div class="hall-row__name">${escapeHtml(h.name || '—')}${h.you ? ' <span style="color:var(--accent); font-size:.75em; margin-left:4px;">• tu</span>' : ''}</div>
-        <div class="hall-row__title">${escapeHtml(subtitle)}</div>
+        <div class="hall-row__name">
+          ${escapeHtml(h.name || '—')}
+          ${h.you ? '<span class="hall-row__you">you</span>' : ''}
+        </div>
+        <div class="hall-row__title">${escapeHtml(h.title || '—')}</div>
       </div>
       <div class="hall-row__xp">
         <strong>${fmt.number(h.xp ?? 0)}</strong>

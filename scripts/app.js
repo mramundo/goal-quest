@@ -1,27 +1,26 @@
 /* =========================================================
    Goal Quest — App entry point
-   Wires up: theme, data load, persistent store, hero meta,
-   livello del cavaliere, footer year. Delega il rendering
-   alle tre sezioni (quests, hall, pergamena).
+   Wires up: theme, login/onboarding, reactive store, seed data,
+   hero recap, footer meta. Delegates rendering to the three
+   feature modules (quests, hall, chronicle).
    ========================================================= */
 
-import { initQuests, openQuestForm, refreshQuests } from './quests.js';
-import { initProgress, openProgressModalFor, refreshPergamena, mountCelebration, flashToast } from './progress.js';
+import { initQuests, openQuestComposer, refreshQuests, closeComposer } from './quests.js';
+import { initProgress, refreshChronicle, flashToast } from './progress.js';
 import { initHall, refreshHall } from './hall.js';
 
 /* ---------- DOM helpers ---------- */
 export const $  = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-/* ---------- Costanti ---------- */
+/* ---------- Constants ---------- */
 const CONFIG = {
-  seedQuests:   'data/quests.seed.json',
-  seedHeroes:   'data/heroes.seed.json',
-  actionsLib:   'data/actions-library.json',
+  seedQuests: 'data/quests.seed.json',
+  seedHeroes: 'data/heroes.seed.json',
+  actionsLib: 'data/actions-library.json',
 };
 
-const LOCALE = 'it-IT';
-const REL_LOCALE = 'it';
+const LOCALE = 'en-US';
 
 const STORAGE = {
   palette: 'gq-palette',
@@ -29,27 +28,13 @@ const STORAGE = {
   quests:  'gq-quests',
   log:     'gq-log',
   profile: 'gq-profile',
-  seeded:  'gq-seeded',  // flag: abbiamo già seminato gli esempi?
+  seeded:  'gq-seeded',
 };
 
-const PALETTES = ['pergamena', 'taverna', 'foresta-elfica', 'regno-ghiaccio'];
+const PALETTES = ['parchment', 'tavern', 'elven-forest', 'frozen-realm'];
 const MODES    = ['dark', 'light'];
 
-/* Gradi del cavaliere — progressione XP -> livello + titolo */
-const TITLES = [
-  { lvl:  1, min:    0, name: 'Novizio' },
-  { lvl:  2, min:  100, name: 'Scudiero' },
-  { lvl:  3, min:  250, name: 'Cavaliere Errante' },
-  { lvl:  4, min:  500, name: 'Cavaliere del Regno' },
-  { lvl:  5, min: 1000, name: 'Campione' },
-  { lvl:  6, min: 2000, name: 'Signore di Guerra' },
-  { lvl:  7, min: 4000, name: 'Barone' },
-  { lvl:  8, min: 8000, name: 'Conte' },
-  { lvl:  9, min:16000, name: 'Duca' },
-  { lvl: 10, min:32000, name: 'Leggenda' },
-];
-
-/* ---------- Store reattivo ---------- */
+/* ---------- Reactive store ---------- */
 function createStore(initial = {}) {
   const listeners = new Set();
   const state = { ...initial };
@@ -71,15 +56,13 @@ function createStore(initial = {}) {
   };
 }
 
-/* ---------- Tema (palette + modalità) ---------- */
+/* ---------- Theme (palette + mode) ---------- */
 function initTheme() {
   const root = document.documentElement;
 
-  // Palette
   let storedPalette = localStorage.getItem(STORAGE.palette);
-  if (!PALETTES.includes(storedPalette)) storedPalette = 'pergamena';
+  if (!PALETTES.includes(storedPalette)) storedPalette = 'parchment';
 
-  // Modalità (fallback a preferenza di sistema)
   let storedMode = localStorage.getItem(STORAGE.mode);
   if (!MODES.includes(storedMode)) {
     const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
@@ -88,14 +71,12 @@ function initTheme() {
 
   applyTheme(storedPalette, storedMode);
 
-  // Toggle luce/buio
   $('#themeToggle')?.addEventListener('click', () => {
     const next = root.dataset.mode === 'light' ? 'dark' : 'light';
     applyTheme(root.dataset.palette, next);
     localStorage.setItem(STORAGE.mode, next);
   });
 
-  // Palette picker
   const toggle = $('#paletteToggle');
   const menu   = $('#paletteMenu');
   if (toggle && menu) {
@@ -107,14 +88,8 @@ function initTheme() {
     };
     markCurrent(storedPalette);
 
-    const closeMenu = () => {
-      menu.hidden = true;
-      toggle.setAttribute('aria-expanded', 'false');
-    };
-    const openMenu = () => {
-      menu.hidden = false;
-      toggle.setAttribute('aria-expanded', 'true');
-    };
+    const closeMenu = () => { menu.hidden = true; toggle.setAttribute('aria-expanded', 'false'); };
+    const openMenu  = () => { menu.hidden = false; toggle.setAttribute('aria-expanded', 'true'); };
 
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -146,53 +121,39 @@ function applyTheme(palette, mode) {
   const root = document.documentElement;
   root.dataset.palette = palette;
   root.dataset.mode = mode;
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) {
+    const bg = getComputedStyle(root).getPropertyValue('--bg').trim() || '#1a1410';
+    meta.setAttribute('content', bg);
+  }
 }
 
-/* ---------- Fetch JSON (solo seed, non scrive) ---------- */
+/* ---------- Fetch JSON (read-only seeds) ---------- */
 async function fetchJSON(url) {
   try {
     const res = await fetch(url, { cache: 'no-cache' });
     if (!res.ok) throw new Error(`${res.status}`);
     return await res.json();
   } catch (err) {
-    console.warn(`[data] fetch fallita per ${url}:`, err.message);
+    console.warn(`[data] fetch failed for ${url}:`, err.message);
     return null;
   }
 }
 
-/* ---------- Persistenza ---------- */
+/* ---------- Persistence ---------- */
 function loadLocal(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
     if (raw == null) return fallback;
     return JSON.parse(raw);
-  } catch {
-    return fallback;
-  }
+  } catch { return fallback; }
 }
 function saveLocal(key, val) {
   try { localStorage.setItem(key, JSON.stringify(val)); }
-  catch (err) { console.warn(`[storage] save fallita per ${key}:`, err); }
+  catch (err) { console.warn(`[storage] save failed for ${key}:`, err); }
 }
 
-/* ---------- Livello / titolo ---------- */
-export function levelFromXp(xp) {
-  const safe = Math.max(0, Number(xp) || 0);
-  let tier = TITLES[0];
-  for (const t of TITLES) { if (safe >= t.min) tier = t; }
-  const nextIdx = TITLES.findIndex(t => t.lvl === tier.lvl) + 1;
-  const next = TITLES[nextIdx] ?? null;
-  return {
-    level: tier.lvl,
-    title: tier.name,
-    min: tier.min,
-    next,
-    toNext: next ? Math.max(0, next.min - safe) : 0,
-    percentInLevel: next ? Math.min(100, Math.round(((safe - tier.min) / (next.min - tier.min)) * 100)) : 100,
-  };
-}
-
-/* ---------- Utilità esportate ---------- */
+/* ---------- Formatting utils ---------- */
 export const fmt = {
   date(iso) {
     if (!iso) return '—';
@@ -217,8 +178,8 @@ export const fmt = {
     if (isNaN(d)) return '—';
     const diffMs = Date.now() - d.getTime();
     const diffMin = Math.round(diffMs / 60000);
-    const rtf = new Intl.RelativeTimeFormat(REL_LOCALE, { numeric: 'auto' });
-    if (Math.abs(diffMin) < 1) return 'adesso';
+    const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+    if (Math.abs(diffMin) < 1) return 'just now';
     if (Math.abs(diffMin) < 60) return rtf.format(-diffMin, 'minute');
     const diffH = Math.round(diffMin / 60);
     if (Math.abs(diffH) < 24) return rtf.format(-diffH, 'hour');
@@ -246,12 +207,11 @@ export function escapeAttr(s) { return escapeHtml(s).replace(/\s+/g, ' '); }
 
 export function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
 
-/* ---------- Calcoli sul grafo quests + log ---------- */
+/* ---------- Quest + log computations ---------- */
 export function computeMetrics(quests, log) {
   const totalXp = log.reduce((s, l) => s + (Number(l.points) || 0), 0);
   const activeQuests = quests.filter(q => !q.completedAt).length;
 
-  // Milestones sbloccate: ogni quest calcola progress dal log; confronta con soglia
   let milestonesUnlocked = 0;
   let milestonesTotal = 0;
   for (const q of quests) {
@@ -264,7 +224,7 @@ export function computeMetrics(quests, log) {
   return { totalXp, activeQuests, milestonesUnlocked, milestonesTotal };
 }
 
-/** Progress di una quest = somma punti loggati (cappata a 100). */
+/** Quest progress = sum of logged points (capped at 100). */
 export function progressFor(quest, log) {
   const sum = log
     .filter(l => l.questId === quest.id)
@@ -272,7 +232,7 @@ export function progressFor(quest, log) {
   return clamp(Math.round(sum), 0, 100);
 }
 
-/* ---------- Hero recap numeri ---------- */
+/* ---------- Hero recap numbers ---------- */
 function animateNumber(el, target) {
   if (!el || !Number.isFinite(target)) return;
   const duration = 700;
@@ -289,27 +249,29 @@ function animateNumber(el, target) {
 function renderHeroRecap(store) {
   const quests = store.get('quests') ?? [];
   const log    = store.get('log') ?? [];
+  const profile = store.get('profile') ?? {};
   const m = computeMetrics(quests, log);
 
   animateNumber($('#heroQuests'), m.activeQuests);
   animateNumber($('#heroXp'), m.totalXp);
   animateNumber($('#heroMilestones'), m.milestonesUnlocked);
 
-  // Pill livello in topbar
-  const lvl = levelFromXp(m.totalXp);
-  const pill = $('#heroStat');
-  if (pill) pill.textContent = `Lv ${lvl.level} · ${lvl.title}`;
+  // Hero chip in topbar
+  const chipLabel = $('#heroChipLabel');
+  if (chipLabel) chipLabel.textContent = profile.name || 'Traveler';
 
-  // Saluto hero
+  // Hero greeting
   const greet = $('#heroGreeting');
   if (greet) {
     const hour = new Date().getHours();
-    const base = hour < 6 ? 'Le stelle vegliano'
-               : hour < 12 ? 'Buon mattino, cavaliere'
-               : hour < 18 ? 'Il sole illumina il tuo cammino'
-               : 'Le torce sono accese';
-    greet.textContent = m.activeQuests > 0 ? `${base} — ${m.activeQuests} quest ti attendono`
-                                           : `${base} — la cronaca è pronta`;
+    const base = hour < 6 ? 'The stars keep watch'
+               : hour < 12 ? 'Good morning'
+               : hour < 18 ? 'The sun lights your road'
+               : 'The torches are lit';
+    const name = profile.name ? `, ${profile.name}` : '';
+    greet.textContent = m.activeQuests > 0
+      ? `${base}${name} — ${m.activeQuests} ${m.activeQuests === 1 ? 'quest awaits' : 'quests await'}`
+      : `${base}${name} — your chronicle is ready`;
   }
 }
 
@@ -321,7 +283,7 @@ function setMeta() {
   if (fd) fd.textContent = 'localStorage';
 }
 
-/* ---------- Seed iniziale ---------- */
+/* ---------- Seed initial data ---------- */
 async function seedIfEmpty(store) {
   const already = localStorage.getItem(STORAGE.seeded) === '1';
   const quests = store.get('quests') ?? [];
@@ -335,7 +297,7 @@ async function seedIfEmpty(store) {
         title: s.title,
         description: s.description ?? '',
         icon: s.icon ?? '📜',
-        topic: s.topic ?? 'generale',
+        topic: s.topic ?? 'general',
         createdAt: now,
         completedAt: null,
         milestones: (s.milestones ?? []).map(m => ({
@@ -352,7 +314,7 @@ async function seedIfEmpty(store) {
   }
 }
 
-/* ---------- Mutazioni esportate ---------- */
+/* ---------- Store mutations ---------- */
 export function addQuest(store, quest) {
   const list = [quest, ...(store.get('quests') ?? [])];
   store.set('quests', list);
@@ -368,7 +330,6 @@ export function removeQuest(store, id) {
   store.set('quests', list);
   saveLocal(STORAGE.quests, list);
 
-  // pulizia log collegato
   const log = (store.get('log') ?? []).filter(l => l.questId !== id);
   store.set('log', log);
   saveLocal(STORAGE.log, log);
@@ -394,21 +355,65 @@ export function exportEverything(store) {
   };
 }
 
+/* ---------- Onboarding (login) ---------- */
+function initOnboarding(store) {
+  const section = $('#onboarding');
+  const form = $('#loginForm');
+  const input = $('#heroNameInput');
+  if (!section || !form || !input) return;
+
+  const profile = store.get('profile') ?? {};
+  if (profile.name) {
+    section.hidden = true;
+    return;
+  }
+
+  section.hidden = false;
+  requestAnimationFrame(() => input.focus());
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = input.value.trim().slice(0, 32);
+    if (!name) { input.focus(); return; }
+    updateProfile(store, { name, title: 'Traveler' });
+    section.hidden = true;
+    flashToast({
+      kind: 'success',
+      title: `Welcome, ${name}`,
+      desc: 'Your chronicle is open. Forge your first quest to begin.',
+    });
+  });
+}
+
+function initEditHero(store) {
+  $('#editProfileBtn')?.addEventListener('click', () => {
+    const profile = store.get('profile') ?? {};
+    const current = profile.name || '';
+    const next = prompt('What name shall history remember?', current);
+    if (next == null) return;
+    const trimmed = next.trim().slice(0, 32);
+    if (!trimmed || trimmed === current) return;
+    updateProfile(store, { name: trimmed });
+    flashToast({ kind: 'success', title: 'Hero renamed', desc: `Now known as ${trimmed}.` });
+  });
+}
+
 /* ---------- Boot ---------- */
 (async function boot() {
   initTheme();
   setMeta();
 
-  // Store condiviso fra moduli
   const store = createStore({
-    quests:      loadLocal(STORAGE.quests, []),
-    log:         loadLocal(STORAGE.log, []),
-    profile:     loadLocal(STORAGE.profile, { name: 'Tu', title: 'Aspirante cavaliere' }),
-    heroes:      [],
-    actionsLib:  {},
+    quests:     loadLocal(STORAGE.quests, []),
+    log:        loadLocal(STORAGE.log, []),
+    profile:    loadLocal(STORAGE.profile, {}),
+    heroes:     [],
+    actionsLib: {},
   });
 
-  // Carica seed statici (solo letture)
+  // Expose for debugging
+  window.__gq = { store, exportEverything };
+
   const [heroes, actionsLib] = await Promise.all([
     fetchJSON(CONFIG.seedHeroes),
     fetchJSON(CONFIG.actionsLib),
@@ -418,43 +423,48 @@ export function exportEverything(store) {
 
   await seedIfEmpty(store);
 
-  // Mount moduli
-  mountCelebration();
+  initOnboarding(store);
+  initEditHero(store);
   initQuests({ store });
   initProgress({ store });
   initHall({ store });
 
-  // Reactive: ogni cambiamento di quests/log aggiorna tutto
+  // Reactive rerender pipeline
   store.subscribe((key) => {
-    if (key === 'quests' || key === 'log' || key === null) {
+    if (key === 'quests' || key === 'log' || key === 'profile' || key === null) {
       renderHeroRecap(store);
       refreshQuests();
       refreshHall();
-      refreshPergamena();
+      refreshChronicle();
     }
   });
 
-  // Primo render
   renderHeroRecap(store);
 
-  // CTA "Forgia una nuova quest"
-  $('#newQuestBtn')?.addEventListener('click', () => openQuestForm({ store, mode: 'create' }));
+  // New quest CTAs
+  const openNew = () => openQuestComposer({ store, mode: 'create' });
+  $('#newQuestBtn')?.addEventListener('click', openNew);
+  $('#newQuestBtnInline')?.addEventListener('click', openNew);
 
-  // CTA empty state
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-open-new-quest]');
-    if (t) { e.preventDefault(); openQuestForm({ store, mode: 'create' }); }
+    if (t) { e.preventDefault(); openNew(); }
   });
 
-  // Diagnostica: shortcut segreto per esportare (utile in dev)
+  // Secret export shortcut (Ctrl+Shift+E)
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey && e.shiftKey && e.key === 'E') {
-      const blob = new Blob([JSON.stringify(exportEverything(store), null, 2)], { type: 'application/json' });
+      const blob = new Blob(
+        [JSON.stringify(exportEverything(store), null, 2)],
+        { type: 'application/json' }
+      );
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = `goal-quest-${Date.now()}.json`; a.click();
       URL.revokeObjectURL(url);
-      flashToast({ kind: 'success', text: 'Backup esportato sulla pergamena' });
+      flashToast({ kind: 'success', title: 'Backup exported', desc: 'JSON saved to disk.' });
     }
+    // Esc closes composer
+    if (e.key === 'Escape') closeComposer();
   });
 })();

@@ -1,37 +1,37 @@
 {
-  "updated": "2026-04-23",
+  "updated": "2026-04-24",
   "items": [
     {
-      "title": "Leggere 12 libri entro l'anno",
-      "description": "Una biblioteca non è fatta di titoli, ma di ore rubate al rumore. Uno al mese.",
+      "title": "Read 12 books this year",
+      "description": "A library isn't built from titles, but from hours stolen back from the noise. One book a month.",
       "icon": "📚",
-      "topic": "lettura",
+      "topic": "reading",
       "milestones": [
-        { "points": 25, "title": "Primo volume archiviato",  "reward": "Un'ora in libreria, senza fretta" },
-        { "points": 50, "title": "Metà dell'anno, metà scaffale", "reward": "Compra il libro che da mesi guardi online" },
-        { "points": 75, "title": "Cronista instancabile",   "reward": "Una serata in un caffè letterario" }
+        { "points": 25, "title": "First volume shelved",    "reward": "An unhurried hour at a bookstore" },
+        { "points": 50, "title": "Halfway through the year", "reward": "Buy the book you've been eyeing online" },
+        { "points": 75, "title": "Tireless chronicler",     "reward": "An evening at a literary café" }
       ]
     },
     {
-      "title": "30 sessioni di allenamento",
-      "description": "Non serve l'armatura del campione, serve costanza: tre uscite a settimana per dieci settimane.",
+      "title": "30 training sessions",
+      "description": "You don't need the champion's armor — you need consistency. Three workouts a week for ten weeks.",
       "icon": "🏃",
-      "topic": "sport",
+      "topic": "fitness",
       "milestones": [
-        { "points": 33, "title": "Il corpo ricorda il ritmo", "reward": "Scarpe da corsa nuove" },
-        { "points": 66, "title": "Fiato da veterano",         "reward": "Iscrizione a una gara locale" },
-        { "points": 99, "title": "Cavaliere instancabile",    "reward": "Una giornata in terme o SPA" }
+        { "points": 33, "title": "Body remembers the rhythm", "reward": "A pair of new running shoes" },
+        { "points": 66, "title": "Veteran's stamina",         "reward": "Sign up for a local race" },
+        { "points": 99, "title": "Untiring knight",           "reward": "A full day at the spa" }
       ]
     },
     {
-      "title": "Mille monete nel forziere",
-      "description": "Riempire il forziere con 1000€ di risparmi extra: piccoli versamenti che diventano tesoro.",
+      "title": "A thousand coins in the chest",
+      "description": "Fill the chest with €1,000 of extra savings — small deposits that become treasure.",
       "icon": "💰",
-      "topic": "risparmio",
+      "topic": "savings",
       "milestones": [
-        { "points": 20, "title": "Primo sigillo d'oro",  "reward": "Conferma: il forziere è stato aperto" },
-        { "points": 50, "title": "Metà bottino",         "reward": "Concediti una piccola spesa voluttuaria" },
-        { "points": 80, "title": "Quasi leggendari",     "reward": "Prenota l'esperienza che rimandavi" }
+        { "points": 20, "title": "First gold seal",   "reward": "Confirm the chest is officially open" },
+        { "points": 50, "title": "Halfway haul",      "reward": "Treat yourself to a small indulgence" },
+        { "points": 80, "title": "Almost legendary", "reward": "Book the experience you've been delaying" }
       ]
     }
   ]

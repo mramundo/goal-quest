@@ -1,9 +1,9 @@
 # Goal Quest
 
-Una cronaca medievale per trasformare i tuoi obiettivi in imprese: quest, tappe intermedie e forzieri.
-Ogni obiettivo vale **100 punti**; definisci le tappe (1–99pt) e il premio che ti regalerai al raggiungimento.
-Le azioni registrate diventano XP, ti fanno salire di rango nella **Sala d'Onore** e scrivono la tua
-**Pergamena delle gesta**.
+A medieval-flavored chronicle that turns your goals into quests, milestones, and treasure chests.
+Every goal is worth **100 points**; you define milestones (1–99pt) and the reward you'll give
+yourself at each one. Logged actions become XP, climb the **Hall of Fame**, and write your
+**Chronicle of deeds**.
 
 → Live: https://mramundo.github.io/goal-quest/
 
@@ -11,85 +11,85 @@ Le azioni registrate diventano XP, ti fanno salire di rango nella **Sala d'Onore
 
 ## Stack
 
-Nessun build step, nessun framework. Tutto ciò che ti serve è un browser moderno.
+No build step, no framework. All you need is a modern browser.
 
-- **HTML5** + **CSS custom properties** (design system a token, 4 palette × dark/light)
-- **ES modules** caricati direttamente dal browser (`<script type="module">`)
-- **localStorage** come unica fonte di verità (dati privati, legati al browser)
-- **GitHub Pages** per il deploy (workflow che carica l'intera repo senza compilare)
+- **HTML5** + **CSS custom properties** (token-based design system, 4 palettes × dark/light)
+- **ES modules** loaded directly by the browser (`<script type="module">`)
+- **localStorage** as the single source of truth (data is private, lives in this browser)
+- **GitHub Pages** for deploy (workflow uploads the whole repo — nothing to compile)
 
-## Temi
+## Themes
 
-| Palette | Atmosfera |
+| Palette | Mood |
 | --- | --- |
-| **Pergamena** *(default)* | Marroni caldi, oro scriba, inchiostro |
-| **Taverna** | Rame, birra, candele tremolanti |
-| **Foresta Elfica** | Verdi profondi, argento, luce filtrata |
-| **Regno di Ghiaccio** | Blu di ghiacciaio, indaco, neve |
+| **Parchment** *(default)* | Warm browns, scribe's gold, ink |
+| **Tavern** | Copper, ale, flickering candles |
+| **Elven Forest** | Deep greens, silver, filtered light |
+| **Frozen Realm** | Glacier blues, indigo, snow |
 
-Ogni palette ha modalità chiara e scura. Il picker in alto a destra cambia palette al volo.
+Every palette has a light and dark mode. The picker in the top-right switches on the fly.
 
-## Come funziona
+## How it works
 
-1. **Forgia una quest**: dai un nome, scegli un'icona, descrivi brevemente l'impresa.
-2. **Definisci i forzieri**: ogni tappa (1–99 pt) ha un premio che ti regalerai al raggiungimento.
-3. **Registra le azioni**: preset per tema oppure azione libera con slider dei punti.
-4. **Sali nella Sala d'Onore**: supera gli XP dei campioni leggendari e scala la classifica.
-5. **Rileggi la Pergamena**: ogni azione registrata resta per sempre nella tua cronaca.
+1. **Forge a quest** — give it a name, pick an icon, describe the undertaking briefly.
+2. **Define the chests** — each milestone (1–99 pt) comes with a reward you'll give yourself.
+3. **Log actions** — use topic-based presets or a free-form action with a points slider.
+4. **Climb the Hall of Fame** — outpace legendary champions' XP and rise through the ranks.
+5. **Reread your Chronicle** — every logged action stays forever in the scroll.
 
-## Sviluppo locale
+## Local development
 
-Serve solo un server HTTP statico (gli ES modules richiedono un'origin, non `file://`).
+Only a static HTTP server is needed (ES modules require an origin, not `file://`).
 
 ```bash
 # Python 3
 python3 -m http.server 8000
 
-# oppure con Node
+# or with Node
 npx serve .
 ```
 
-Apri `http://localhost:8000` e sei operativo.
+Open `http://localhost:8000` and you're off.
 
-## Struttura
+## Structure
 
 ```
 goal-quest/
-├── index.html              # markup principale (header, hero, sezioni, dialog)
+├── index.html              # main markup (topbar, hero, sections, onboarding, footer)
 ├── styles/
-│   └── main.css            # design system (4 palette × dark/light)
+│   └── main.css            # design system (4 palettes × dark/light)
 ├── scripts/
-│   ├── app.js              # entry: tema, store, boot, livelli
-│   ├── quests.js           # lista + drawer + modale "Forgia quest"
-│   ├── progress.js         # modale "Registra azione", celebrazione, pergamena
-│   └── hall.js             # Sala d'Onore
+│   ├── app.js              # entry: theme, store, boot, hero recap
+│   ├── quests.js           # list + inline detail + inline composer
+│   ├── progress.js         # inline log composer, chronicle, toasts
+│   └── hall.js             # Hall of Fame leaderboard
 ├── data/
-│   ├── quests.seed.json    # esempi iniziali (solo al primo avvio)
-│   ├── heroes.seed.json    # campioni leggendari della Sala d'Onore
-│   └── actions-library.json# preset azioni per tema
+│   ├── quests.seed.json    # initial examples (first run only)
+│   ├── heroes.seed.json    # legendary champions of the Hall
+│   └── actions-library.json# per-topic action presets
 ├── assets/
 │   └── favicon.svg
 └── .github/workflows/
-    └── pages.yml           # deploy GitHub Pages
+    └── pages.yml           # GitHub Pages deploy
 ```
 
-## Dati
+## Data
 
-Tutto resta nel tuo browser sotto questi key di `localStorage`:
+Everything stays in your browser under these `localStorage` keys:
 
-- `gq-quests` — quest con milestones
-- `gq-log` — cronologia azioni
-- `gq-profile` — nome/titolo del cavaliere
-- `gq-palette`, `gq-mode` — preferenze di tema
-- `gq-seeded` — flag "abbiamo già mostrato gli esempi iniziali"
+- `gq-quests` — quests with milestones
+- `gq-log` — action history
+- `gq-profile` — hero name and title
+- `gq-palette`, `gq-mode` — theme preferences
+- `gq-seeded` — flag "we've already loaded the initial examples"
 
-Shortcut segreto: `Ctrl + Shift + E` esporta un JSON con tutto lo stato (utile per backup manuali).
+Secret shortcut: `Ctrl + Shift + E` exports a JSON of all state (handy for manual backups).
 
 ## Deploy
 
-Ogni push su `main` rigenera il sito. Il workflow è [`.github/workflows/pages.yml`](.github/workflows/pages.yml) e
-si limita a caricare l'intera repo come artifact di Pages — nessun build, nessun framework da compilare.
+Every push to `main` regenerates the site. The workflow is [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+and simply uploads the whole repo as a Pages artifact — no build, nothing to compile.
 
-## Licenza
+## License
 
-MIT. Gioca onestamente.
+MIT. Play fair.

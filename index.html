@@ -1,41 +1,75 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#1a1410" />
-  <meta name="description" content="Goal Quest — trasforma i tuoi obiettivi in una cronaca medievale di imprese, tappe e forzieri." />
-  <title>Goal Quest — La tua cronaca di obiettivi</title>
+  <meta name="description" content="Goal Quest — turn your goals into quests, milestones, and treasure chests." />
+  <title>Goal Quest · Turn goals into quests</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" />
 
   <link rel="stylesheet" href="styles/main.css" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
 <body>
-  <a class="skip-link" href="#main">Salta al contenuto</a>
+  <a class="skip-link" href="#main">Skip to content</a>
 
+  <!-- ========= Login / Onboarding ========= -->
+  <section class="onboarding" id="onboarding" hidden>
+    <div class="onboarding__card">
+      <div class="onboarding__crest" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="72" height="72"><use href="#crest-glyph"/></svg>
+      </div>
+      <h1 class="onboarding__title">Welcome, traveler</h1>
+      <p class="onboarding__lead">
+        What name shall history remember? Your chronicle lives in this browser —
+        no password, no sign-up.
+      </p>
+      <form class="onboarding__form" id="loginForm">
+        <label class="field">
+          <span class="field__label">Hero name</span>
+          <input class="field__input" id="heroNameInput" type="text" required
+                 maxlength="32" autocomplete="off" spellcheck="false"
+                 placeholder="e.g. Aelar of the Western Reach" />
+        </label>
+        <div class="onboarding__actions">
+          <button class="btn btn--primary" type="submit">Begin your chronicle</button>
+        </div>
+      </form>
+      <p class="onboarding__hint">
+        You can change your name later from the Chronicle section.
+      </p>
+    </div>
+  </section>
+
+  <!-- ========= Topbar ========= -->
   <header class="topbar" role="banner">
     <div class="topbar__inner">
       <a class="brand" href="#">
-        <span class="brand__dot" aria-hidden="true"></span>
-        <span class="brand__name">Goal <strong>Quest</strong></span>
+        <span class="brand__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><use href="#crest-glyph"/></svg>
+        </span>
+        <span class="brand__name">Goal<strong>Quest</strong></span>
       </a>
 
-      <nav class="nav" aria-label="Navigazione principale">
-        <a href="#quests-section" class="nav__link">Quest</a>
-        <a href="#hall-section" class="nav__link">Sala d'Onore</a>
-        <a href="#scroll-section" class="nav__link">Pergamena</a>
+      <nav class="nav" aria-label="Primary">
+        <a href="#quests-section"  class="nav__link">Quests</a>
+        <a href="#hall-section"    class="nav__link">Hall of Fame</a>
+        <a href="#chronicle-section" class="nav__link">Chronicle</a>
       </nav>
 
       <div class="topbar__actions">
-        <span class="hero-stat" id="heroStat" aria-live="polite">Lv 1 · Novizio</span>
+        <span class="hero-chip" id="heroChip">
+          <span class="hero-chip__dot" aria-hidden="true"></span>
+          <span id="heroChipLabel">—</span>
+        </span>
 
         <div class="palette-picker">
           <button class="icon-btn palette-picker__toggle" id="paletteToggle"
-                  aria-label="Cambia palette" title="Cambia palette"
+                  aria-label="Change palette" title="Change palette"
                   aria-haspopup="true" aria-expanded="false">
             <span class="palette-picker__swatches" aria-hidden="true">
               <span class="palette-picker__sw" style="background: var(--accent)"></span>
@@ -45,39 +79,39 @@
             </span>
           </button>
           <div class="palette-picker__menu" id="paletteMenu" role="menu" hidden>
-            <button class="palette-picker__option" role="menuitem" data-palette="pergamena">
+            <button class="palette-picker__option" role="menuitem" data-palette="parchment">
               <span class="palette-picker__preview" aria-hidden="true">
                 <span style="background:#2a1f14"></span><span style="background:#c9a24b"></span>
                 <span style="background:#8b4513"></span><span style="background:#d4b88a"></span>
               </span>
-              <span class="palette-picker__name">Pergamena <em>(default)</em></span>
+              <span class="palette-picker__name">Parchment <em>(default)</em></span>
             </button>
-            <button class="palette-picker__option" role="menuitem" data-palette="taverna">
+            <button class="palette-picker__option" role="menuitem" data-palette="tavern">
               <span class="palette-picker__preview" aria-hidden="true">
                 <span style="background:#1a1008"></span><span style="background:#e8833a"></span>
                 <span style="background:#c17e36"></span><span style="background:#b33a2a"></span>
               </span>
-              <span class="palette-picker__name">Taverna</span>
+              <span class="palette-picker__name">Tavern</span>
             </button>
-            <button class="palette-picker__option" role="menuitem" data-palette="foresta-elfica">
+            <button class="palette-picker__option" role="menuitem" data-palette="elven-forest">
               <span class="palette-picker__preview" aria-hidden="true">
                 <span style="background:#0d1a12"></span><span style="background:#7db87d"></span>
                 <span style="background:#d4af37"></span><span style="background:#4a7c59"></span>
               </span>
-              <span class="palette-picker__name">Foresta Elfica</span>
+              <span class="palette-picker__name">Elven Forest</span>
             </button>
-            <button class="palette-picker__option" role="menuitem" data-palette="regno-ghiaccio">
+            <button class="palette-picker__option" role="menuitem" data-palette="frozen-realm">
               <span class="palette-picker__preview" aria-hidden="true">
                 <span style="background:#0a1420"></span><span style="background:#7ec8e3"></span>
                 <span style="background:#c0d8e8"></span><span style="background:#4a6b8a"></span>
               </span>
-              <span class="palette-picker__name">Regno di Ghiaccio</span>
+              <span class="palette-picker__name">Frozen Realm</span>
             </button>
           </div>
         </div>
 
-        <button class="icon-btn" id="themeToggle" aria-label="Alterna luce / buio" title="Alterna luce / buio">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle light / dark" title="Toggle light / dark">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="4"/>
             <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
           </svg>
@@ -86,142 +120,203 @@
     </div>
   </header>
 
+  <!-- ========= Shared icons ========= -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+    <defs>
+      <symbol id="crest-glyph" viewBox="0 0 64 64">
+        <path d="M32 6 L54 14 L54 32 Q54 50 32 60 Q10 50 10 32 L10 14 Z"
+              fill="currentColor" opacity=".16"/>
+        <path d="M32 6 L54 14 L54 32 Q54 50 32 60 Q10 50 10 32 L10 14 Z"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M32 20 L34.8 27.6 L43 28.2 L36.6 33.4 L38.8 41.4 L32 37 L25.2 41.4 L27.4 33.4 L21 28.2 L29.2 27.6 Z"
+              fill="currentColor"/>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 5v14M5 12h14"/>
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="m5 13 4 4L19 7"/>
+      </symbol>
+      <symbol id="i-close" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M18 6 6 18M6 6l12 12"/>
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24">
+        <circle fill="none" stroke="currentColor" stroke-width="2" cx="11" cy="11" r="7"/>
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="m21 21-4.3-4.3"/>
+      </symbol>
+      <symbol id="i-chest" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <path fill="none" stroke="currentColor" stroke-width="2" d="M3 9c0-3 3-4 9-4s9 1 9 4"/>
+        <rect x="10" y="12" width="4" height="4" fill="currentColor" opacity=".35"/>
+      </symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/>
+      </symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+      </symbol>
+      <symbol id="i-back" viewBox="0 0 24 24">
+        <path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M19 12H5M12 19l-7-7 7-7"/>
+      </symbol>
+      <symbol id="i-sparkle" viewBox="0 0 24 24">
+        <path fill="currentColor" d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10 Z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <!-- ========= Main ========= -->
   <main id="main">
+    <!-- Hero -->
     <section class="hero" aria-labelledby="hero-title">
-      <div class="hero__bg" aria-hidden="true"></div>
-      <div class="hero__content">
-        <span class="badge">
-          <span class="badge__pulse" aria-hidden="true"></span>
-          <span id="heroGreeting">La tua cronaca è viva</span>
-        </span>
-        <h1 id="hero-title" class="hero__title">
-          I tuoi obiettivi,<br/>una crociata personale.
-        </h1>
-        <p class="hero__lead">
-          Forgia quest, spezzale in tappe, promettiti forzieri. Ogni azione
-          registrata diventa punti esperienza: sali di livello e scala la Sala d'Onore.
-        </p>
-        <p class="hero__monitoring">
-          Hai
-          <strong id="heroQuests">—</strong> quest attive, <strong id="heroXp">—</strong> XP
-          totali e hai sbloccato <strong id="heroMilestones">—</strong> forzieri.
-        </p>
-        <div class="hero__actions">
-          <button class="btn btn--primary" id="newQuestBtn">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-            Forgia una nuova quest
-          </button>
-          <a href="#quests-section" class="btn btn--ghost">Sfoglia le quest</a>
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="hero__grid">
+        <div class="hero__content">
+          <span class="eyebrow">
+            <svg width="14" height="14"><use href="#i-sparkle"/></svg>
+            <span id="heroGreeting">Your chronicle awaits</span>
+          </span>
+          <h1 id="hero-title" class="hero__title">
+            Turn your goals into <span class="hero__title-accent">quests worth finishing</span>.
+          </h1>
+          <p class="hero__lead">
+            Break big ambitions into milestones. Promise yourself a small reward
+            at each one. Log the work — the bar fills, the chest unlocks,
+            and every action lives forever in your chronicle.
+          </p>
+
+          <div class="hero__stats">
+            <div class="stat-card">
+              <div class="stat-card__value" id="heroQuests">—</div>
+              <div class="stat-card__label">Active quests</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__value" id="heroXp">—</div>
+              <div class="stat-card__label">Total XP</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-card__value" id="heroMilestones">—</div>
+              <div class="stat-card__label">Chests opened</div>
+            </div>
+          </div>
+
+          <div class="hero__actions">
+            <button class="btn btn--primary" id="newQuestBtn">
+              <svg width="16" height="16"><use href="#i-plus"/></svg>
+              Start a new quest
+            </button>
+            <a href="#quests-section" class="btn btn--ghost">Browse quests</a>
+          </div>
         </div>
+
+        <aside class="hero__ornament" aria-hidden="true">
+          <div class="hero__crest">
+            <svg viewBox="0 0 64 64" width="180" height="180"><use href="#crest-glyph"/></svg>
+          </div>
+        </aside>
       </div>
     </section>
 
+    <!-- Quests -->
     <section id="quests-section" class="section" aria-labelledby="quests-title">
       <div class="section__header">
         <div>
-          <h2 id="quests-title" class="section__title">Le tue quest</h2>
+          <h2 id="quests-title" class="section__title">Your quests</h2>
           <p class="section__subtitle">
-            Ogni quest ha un obiettivo finale da 100 punti, tappe intermedie e premi configurabili.
+            Each quest totals 100 points. Milestones unlock small rewards along the way.
           </p>
         </div>
-        <div class="filters" role="tablist" aria-label="Filtra per stato">
-          <button class="chip chip--active" role="tab" aria-selected="true" data-filter="all">Tutte</button>
-          <button class="chip" role="tab" aria-selected="false" data-filter="active">In corso</button>
-          <button class="chip" role="tab" aria-selected="false" data-filter="done">Completate</button>
+        <div class="section__toolbar">
+          <div class="filters" role="tablist" aria-label="Filter by status">
+            <button class="chip chip--active" role="tab" aria-selected="true" data-filter="all">All</button>
+            <button class="chip" role="tab" aria-selected="false" data-filter="active">Active</button>
+            <button class="chip" role="tab" aria-selected="false" data-filter="done">Completed</button>
+          </div>
+          <button class="btn btn--primary btn--sm" id="newQuestBtnInline">
+            <svg width="14" height="14"><use href="#i-plus"/></svg>
+            New quest
+          </button>
         </div>
       </div>
 
       <div class="search">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="search" id="questsSearch" placeholder="Cerca una quest (es. libri, corsa, risparmi)…" aria-label="Cerca quest" />
+        <svg width="16" height="16"><use href="#i-search"/></svg>
+        <input type="search" id="questsSearch" placeholder="Search (books, running, savings…)" aria-label="Search quests" />
       </div>
 
-      <ol class="quest-list" id="questList" aria-live="polite"></ol>
+      <!-- Inline composer slot -->
+      <div id="composerSlot" class="composer-slot" aria-live="polite"></div>
+
+      <!-- Quest list -->
+      <ul class="quest-list" id="questList" aria-live="polite"></ul>
 
       <p class="empty" id="questsEmpty" hidden>
-        Nessuna quest qui. <button class="btn-inline" data-open-new-quest>Forgiala tu, cavaliere.</button>
+        No quests yet. <button class="btn-inline" data-open-new-quest>Forge your first one.</button>
       </p>
     </section>
 
+    <!-- Hall of Fame -->
     <section id="hall-section" class="section" aria-labelledby="hall-title">
       <div class="section__header">
         <div>
-          <h2 id="hall-title" class="section__title">Sala d'Onore</h2>
+          <h2 id="hall-title" class="section__title">Hall of Fame</h2>
           <p class="section__subtitle">
-            I campioni del regno. Supera i loro XP per conquistare la tua posizione.
+            Champions of the realm. Outpace their XP to climb the ranks.
           </p>
         </div>
-        <div class="legend" aria-label="Legenda rango">
-          <span class="legend__item"><i class="dot dot--gold"></i>Oro</span>
-          <span class="legend__item"><i class="dot dot--silver"></i>Argento</span>
-          <span class="legend__item"><i class="dot dot--bronze"></i>Bronzo</span>
+        <div class="legend" aria-label="Rank legend">
+          <span class="legend__item"><i class="dot dot--gold"></i>Gold</span>
+          <span class="legend__item"><i class="dot dot--silver"></i>Silver</span>
+          <span class="legend__item"><i class="dot dot--bronze"></i>Bronze</span>
         </div>
       </div>
-
       <ol class="hall-list" id="hallList"></ol>
     </section>
 
-    <section id="scroll-section" class="section" aria-labelledby="scroll-title">
+    <!-- Chronicle -->
+    <section id="chronicle-section" class="section" aria-labelledby="chronicle-title">
       <div class="section__header">
         <div>
-          <h2 id="scroll-title" class="section__title">Pergamena delle gesta</h2>
+          <h2 id="chronicle-title" class="section__title">Chronicle of deeds</h2>
           <p class="section__subtitle">
-            Le ultime azioni registrate, in ordine cronologico inverso.
+            Your latest actions, newest first.
           </p>
         </div>
+        <button class="btn btn--ghost btn--sm" id="editProfileBtn">
+          <svg width="14" height="14"><use href="#i-edit"/></svg>
+          Edit hero
+        </button>
       </div>
-
-      <ol class="log-list" id="logList"></ol>
-      <p class="empty" id="logEmpty" hidden>Non hai ancora scritto nulla sulla pergamena.</p>
+      <div class="log-list" id="logList"></div>
+      <p class="empty" id="logEmpty" hidden>Nothing written on your scroll yet.</p>
     </section>
   </main>
 
+  <!-- Footer -->
   <footer class="footer" role="contentinfo">
-    <div class="footer__inner-wrap">
-      <div class="footer__sources">
-        <div class="footer__sources-col">
-          <h3 class="footer__sources-label">Come funziona</h3>
-          <p>Ogni quest vale 100 punti. Definisci le tappe (1-99pt), ciascuna con un premio. Logga le azioni, cresce la barra, si sblocca il forziere. Il tuo progresso vive nel browser (localStorage).</p>
+    <div class="footer__wrap">
+      <div class="footer__cols">
+        <div class="footer__col">
+          <h3 class="footer__label">How it works</h3>
+          <p>Each quest is worth 100 points. Define milestones from 1 to 99 points, each with a reward. Log every action — the bar fills, the chest opens. Your chronicle lives in the browser.</p>
         </div>
-        <div class="footer__sources-col">
-          <h3 class="footer__sources-label">Temi disponibili</h3>
-          <p>Pergamena, Taverna, Foresta Elfica, Regno di Ghiaccio. Ognuno in versione chiara e scura. Il picker in alto a destra cambia palette al volo.</p>
+        <div class="footer__col">
+          <h3 class="footer__label">Themes</h3>
+          <p>Parchment, Tavern, Elven Forest, Frozen Realm. Each with light and dark variants. The palette picker on the top right switches on the fly.</p>
+        </div>
+        <div class="footer__col">
+          <h3 class="footer__label">Data</h3>
+          <p>Everything is stored locally in your browser. No account, no backend. Use <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> to export a JSON backup anytime.</p>
         </div>
       </div>
-      <div class="footer__meta-row">
-        <p>© <span id="year"></span> Goal Quest — progetto open-source, dati locali al browser.</p>
-        <p class="footer__meta">Dati: <span id="footerData">localStorage</span></p>
+      <div class="footer__meta">
+        <p>© <span id="year"></span> Goal Quest — open-source prototype.</p>
+        <p><span id="footerData">localStorage</span> · <a href="https://github.com/mramundo/goal-quest" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
       </div>
     </div>
   </footer>
 
-  <!-- Quest detail drawer -->
-  <dialog class="drawer" id="questDrawer" aria-label="Dettaglio quest"></dialog>
-
-  <!-- Quest form modal -->
-  <dialog class="modal" id="questModal" aria-label="Forgia una nuova quest"></dialog>
-
-  <!-- Progress log modal -->
-  <dialog class="modal modal--small" id="progressModal" aria-label="Registra un'azione"></dialog>
-
-  <!-- Celebration overlay -->
-  <dialog class="celebration" id="celebration" aria-label="Forziere aperto">
-    <div class="celebration__card">
-      <div class="celebration__chest" aria-hidden="true">
-        <svg viewBox="0 0 64 64" width="96" height="96" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="8" y="22" width="48" height="32" rx="2"/>
-          <path d="M8 32h48"/>
-          <path d="M8 22c0-8 8-10 24-10s24 2 24 10"/>
-          <rect x="28" y="30" width="8" height="8" rx="1" fill="currentColor" fill-opacity=".2"/>
-          <path d="M32 30v8"/>
-        </svg>
-      </div>
-      <p class="celebration__label">Premio sbloccato</p>
-      <h3 class="celebration__title" id="celebrationTitle">—</h3>
-      <p class="celebration__desc" id="celebrationDesc">—</p>
-      <button class="btn btn--primary" id="celebrationDismiss">Continua la quest</button>
-    </div>
-  </dialog>
+  <!-- Toast container -->
+  <div class="toast-container" id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
   <script type="module" src="scripts/app.js"></script>
 </body>

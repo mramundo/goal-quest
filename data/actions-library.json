@@ -1,83 +1,83 @@
 {
-  "generale": {
-    "label": "Generale",
+  "general": {
+    "label": "General",
     "presets": [
-      { "action": "Piccolo passo",       "points": 2 },
-      { "action": "Progresso solido",    "points": 5 },
-      { "action": "Salto di qualità",    "points": 10 },
-      { "action": "Impresa del giorno",  "points": 20 }
+      { "action": "Small step",       "points": 2 },
+      { "action": "Solid progress",   "points": 5 },
+      { "action": "Big leap",         "points": 10 },
+      { "action": "Day's best deed",  "points": 20 }
     ]
   },
-  "lettura": {
-    "label": "Lettura",
+  "reading": {
+    "label": "Reading",
     "presets": [
-      { "action": "Letti 15 minuti",     "points": 2 },
-      { "action": "Letto un capitolo",   "points": 5 },
-      { "action": "Finito un saggio breve", "points": 12 },
-      { "action": "Finito un libro",     "points": 20 }
+      { "action": "Read 15 minutes",     "points": 2 },
+      { "action": "Finished a chapter",  "points": 5 },
+      { "action": "Finished a short essay", "points": 12 },
+      { "action": "Finished a book",     "points": 20 }
     ]
   },
-  "sport": {
-    "label": "Sport",
+  "fitness": {
+    "label": "Fitness",
     "presets": [
-      { "action": "Allenamento leggero", "points": 2 },
-      { "action": "Allenamento completo","points": 5 },
-      { "action": "Sessione intensa",    "points": 8 },
-      { "action": "Gara o lunga uscita", "points": 15 }
+      { "action": "Light workout",       "points": 2 },
+      { "action": "Full workout",        "points": 5 },
+      { "action": "Intense session",     "points": 8 },
+      { "action": "Race or long outing", "points": 15 }
     ]
   },
-  "salute": {
-    "label": "Salute",
+  "health": {
+    "label": "Health",
     "presets": [
-      { "action": "Bevuto 2L d'acqua",   "points": 2 },
-      { "action": "Mangiato sano",       "points": 3 },
-      { "action": "Sonno regolare (7h+)","points": 5 },
-      { "action": "Giornata senza scuse","points": 10 }
+      { "action": "Drank 2L water",       "points": 2 },
+      { "action": "Ate clean",            "points": 3 },
+      { "action": "Slept well (7h+)",     "points": 5 },
+      { "action": "Day without excuses",  "points": 10 }
     ]
   },
-  "risparmio": {
-    "label": "Risparmio",
+  "savings": {
+    "label": "Savings",
     "presets": [
-      { "action": "Spesa evitata",       "points": 2 },
-      { "action": "Messi 10€ da parte",  "points": 4 },
-      { "action": "Messi 50€ nel forziere", "points": 10 },
-      { "action": "Versamento mensile",  "points": 20 }
+      { "action": "Avoided a purchase",   "points": 2 },
+      { "action": "Stashed €10",          "points": 4 },
+      { "action": "Stashed €50",          "points": 10 },
+      { "action": "Monthly deposit",      "points": 20 }
     ]
   },
-  "studio": {
-    "label": "Studio",
+  "study": {
+    "label": "Study",
     "presets": [
-      { "action": "30 minuti focus",     "points": 3 },
-      { "action": "Un'ora di studio",    "points": 6 },
-      { "action": "Esame o test passato","points": 15 },
-      { "action": "Giornata da scriba",  "points": 12 }
+      { "action": "30 minutes focus",     "points": 3 },
+      { "action": "One hour of study",    "points": 6 },
+      { "action": "Scribe's day",         "points": 12 },
+      { "action": "Passed an exam/test",  "points": 15 }
     ]
   },
-  "creativita": {
-    "label": "Creatività",
+  "creative": {
+    "label": "Creative",
     "presets": [
-      { "action": "Schizzo/idea annotata","points": 2 },
-      { "action": "Sessione creativa",   "points": 5 },
-      { "action": "Opera finita",        "points": 12 },
-      { "action": "Pubblicata/condivisa","points": 15 }
+      { "action": "Sketch / idea noted",  "points": 2 },
+      { "action": "Creative session",     "points": 5 },
+      { "action": "Work finished",        "points": 12 },
+      { "action": "Published / shared",   "points": 15 }
     ]
   },
-  "viaggi": {
-    "label": "Viaggi",
+  "travel": {
+    "label": "Travel",
     "presets": [
-      { "action": "Ricerca destinazione","points": 2 },
-      { "action": "Prenotazione confermata","points": 8 },
-      { "action": "Giornata di viaggio", "points": 12 },
-      { "action": "Nuovo luogo scoperto","points": 15 }
+      { "action": "Destination research", "points": 2 },
+      { "action": "Booking confirmed",    "points": 8 },
+      { "action": "Travel day",           "points": 12 },
+      { "action": "New place discovered", "points": 15 }
     ]
   },
-  "casa": {
-    "label": "Casa",
+  "home": {
+    "label": "Home",
     "presets": [
-      { "action": "Riordinato un angolo","points": 3 },
-      { "action": "Pulizia profonda",    "points": 6 },
-      { "action": "Riparazione",         "points": 8 },
-      { "action": "Progetto completato", "points": 15 }
+      { "action": "Tidied a corner",      "points": 3 },
+      { "action": "Deep clean",           "points": 6 },
+      { "action": "Fix / repair",         "points": 8 },
+      { "action": "Project completed",    "points": 15 }
     ]
   }
 }
