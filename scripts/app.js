@@ -436,10 +436,45 @@ function showBootError(message) {
     </div>`;
 }
 
+/* ---------- Inline SVG plates ----------
+   Any element with `data-svg-src` gets that SVG fetched and inserted
+   inline. Doing it this way (rather than via <img src="..."> or
+   <object>) keeps the SVG in the host document, so its `currentColor`
+   fill inherits from CSS and its relative `xlink:href` raster still
+   resolves. Idempotent: the attribute is removed after injection so
+   re-runs are safe. */
+async function inlineSvgPlates() {
+  const hosts = document.querySelectorAll('[data-svg-src]');
+  await Promise.all([...hosts].map(async (host) => {
+    const src = host.getAttribute('data-svg-src');
+    if (!src) return;
+    try {
+      const res = await fetch(src, { cache: 'no-cache' });
+      if (!res.ok) throw new Error(`${res.status}`);
+      let svg = await res.text();
+      // Relative `(xlink:)?href` values inside the SVG were resolved
+      // against the SVG's own URL while it lived on disk. Once we
+      // splice the markup into index.html they'd resolve against this
+      // document's base URL and 404. Rewrite them to URLs anchored at
+      // the SVG's original directory so embedded rasters still load.
+      const svgDir = new URL(src, document.baseURI).href.replace(/[^/]+$/, '');
+      svg = svg.replace(
+        /(\s(?:xlink:)?href\s*=\s*")(?!https?:|\/|#|data:|blob:)([^"]+)(")/g,
+        (_, pre, path, post) => `${pre}${svgDir}${path}${post}`
+      );
+      host.innerHTML = svg;
+      host.removeAttribute('data-svg-src');
+    } catch (err) {
+      console.warn(`[plate] failed to load ${src}:`, err.message);
+    }
+  }));
+}
+
 /* ---------- Boot ---------- */
 (async function boot() {
   initTheme();
   setMeta();
+  inlineSvgPlates();
 
   const store = createStore({
     quests: [],

@@ -223,17 +223,16 @@
         </div>
 
         <aside class="hero__ornament" aria-hidden="true">
-          <!-- Dürer, "Saint George Killing the Dragon" (c.1501–1504,
-               National Gallery of Art 1943.3.3597). Public domain.
-               The CSS below re-tints the plate for each palette and
-               flips it on dark modes so the ink always reads as the
-               palette's ink colour over the palette's parchment. -->
-          <figure class="hero__woodcut">
-            <img src="assets/hero-woodcut.jpg"
-                 alt=""
-                 width="260" height="380"
-                 decoding="async" loading="lazy">
-          </figure>
+          <!-- Dürer, Saint George and the Dragon (public domain).
+               The plate is an SVG whose embedded raster feeds a mask;
+               a <rect fill="currentColor"> inside that mask makes the
+               ink take whatever colour this container carries, so the
+               woodcut follows the active palette. Loaded inline via
+               fetch() by scripts/app.js — <img src> would have sand-
+               boxed the SVG and broken both the xlink:href and the
+               currentColor inheritance. -->
+          <div class="hero__woodcut"
+               data-svg-src="assets/durer-knight-embedded.svg"></div>
         </aside>
       </div>
     </section>

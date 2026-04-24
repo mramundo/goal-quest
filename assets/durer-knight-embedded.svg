@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 820 1200" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Saint George and the dragon — after Albrecht Dürer (c. 1505)">
+  <defs>
+    <filter id="gq-inkify" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feColorMatrix type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.35 -1.35 -1.35 0 1.30"></feColorMatrix>
+      <feComponentTransfer><feFuncA type="gamma" amplitude="1" exponent="0.85" offset="0"></feFuncA></feComponentTransfer>
+    </filter>
+    <mask id="gq-ink-mask" maskUnits="userSpaceOnUse" mask-type="alpha" style="mask-type:alpha" x="0" y="0" width="820" height="1200">
+      <image xlink:href="durer-knight-greyscale.jpg" href="durer-knight-greyscale.jpg" x="0" y="0" width="820" height="1200" filter="url(#gq-inkify)" preserveAspectRatio="none"></image>
+    </mask>
+  </defs>
+  <rect x="0" y="0" width="820" height="1200" fill="currentColor" mask="url(#gq-ink-mask)"></rect>
+</svg>
