@@ -483,6 +483,9 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
 .hero {
   padding: 48px 0 16px;
   position: relative;
+  /* Clip the background glow so it can bleed past the content area
+     visually without widening the layout viewport on mobile. */
+  overflow: hidden;
 }
 .hero__glow {
   position: absolute; pointer-events: none;
