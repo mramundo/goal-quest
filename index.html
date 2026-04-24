@@ -161,6 +161,115 @@
       <symbol id="i-sparkle" viewBox="0 0 24 24">
         <path fill="currentColor" d="M12 2 14 10 22 12 14 14 12 22 10 14 2 12 10 10 Z"/>
       </symbol>
+
+      <!-- Hero tableau: knight vs. dragon. All shapes inherit currentColor
+           so the scene recolors with the active palette. Depth is carried
+           by opacity tiers (backdrop → creature → hero) rather than hue. -->
+      <symbol id="hero-scene" viewBox="0 0 240 200">
+        <!-- Distant mountain / castle backdrop -->
+        <path fill="currentColor" opacity=".08"
+              d="M0 170 L30 140 L50 155 L70 125 L90 150 L120 110 L150 145 L170 130 L200 150 L215 135 L240 160 L240 200 L0 200 Z"/>
+        <!-- Castle silhouette on the far left ridge -->
+        <path fill="currentColor" opacity=".14"
+              d="M18 155 L18 132 L22 132 L22 126 L26 126 L26 132 L30 132 L30 124 L34 124 L34 132 L38 132 L38 128 L42 128 L42 132 L46 132 L46 155 Z"/>
+
+        <!-- Moon disc behind the dragon -->
+        <circle cx="170" cy="58" r="30" fill="currentColor" opacity=".18"/>
+        <circle cx="178" cy="52" r="24" fill="currentColor" opacity=".06"/>
+
+        <!-- Dragon — body coil, raised wing, snarling head breathing fire at the knight -->
+        <g opacity=".72">
+          <!-- Wing, scalloped -->
+          <path fill="currentColor"
+                d="M155 82 Q128 40 172 28 Q176 46 198 32 Q192 58 215 58 Q196 76 205 96 Q180 88 172 104 Q166 92 155 82 Z"/>
+          <!-- Wing veins -->
+          <path fill="none" stroke="currentColor" stroke-width="1.2" opacity=".55"
+                d="M170 82 L180 42 M170 82 L192 48 M170 82 L205 66 M170 82 L198 86"/>
+          <!-- Body coil / tail curling back -->
+          <path fill="currentColor"
+                d="M150 110 Q180 108 198 132 Q220 148 208 172 Q200 182 188 178 Q198 168 192 156 Q184 144 168 148 Q152 154 148 138 Q144 122 150 110 Z"/>
+          <!-- Belly scales -->
+          <path fill="none" stroke="currentColor" stroke-width="1" opacity=".55"
+                d="M158 138 Q168 142 178 140 M162 148 Q172 152 182 150 M170 162 Q180 166 190 164"/>
+          <!-- Neck + head lunging down-left -->
+          <path fill="currentColor"
+                d="M150 110 Q138 108 126 118 Q116 124 112 134 L118 140 Q124 132 134 128 Q144 126 150 124 Z"/>
+          <!-- Horn -->
+          <path fill="currentColor"
+                d="M124 118 L118 104 L128 114 Z"/>
+          <!-- Jaw -->
+          <path fill="currentColor"
+                d="M112 134 L100 136 L104 142 L116 140 Z"/>
+          <!-- Eye -->
+          <circle cx="122" cy="122" r="1.4" fill="currentColor" opacity="0"/>
+        </g>
+
+        <!-- Flame breath streaming toward the knight -->
+        <g opacity=".55">
+          <path fill="currentColor"
+                d="M100 138 Q84 138 78 144 Q72 148 68 146 Q76 150 82 148 Q74 154 70 154 Q80 156 88 152 Q80 158 76 160 Q86 160 94 154 Q100 150 104 146 Z"/>
+          <path fill="currentColor" opacity=".55"
+                d="M92 144 Q82 146 78 150 Q88 150 96 146 Z"/>
+        </g>
+
+        <!-- Ground line -->
+        <path fill="none" stroke="currentColor" stroke-width="1.4" opacity=".35"
+              d="M0 182 L240 182"/>
+        <path fill="currentColor" opacity=".18"
+              d="M0 182 Q60 176 120 182 Q180 186 240 180 L240 200 L0 200 Z"/>
+
+        <!-- Knight — planted stance, shield raised, sword held high -->
+        <g opacity=".95">
+          <!-- Sword held vertically, edge pointing up -->
+          <rect x="47" y="48" width="2.4" height="60" fill="currentColor"/>
+          <!-- Blade tip highlight -->
+          <path fill="currentColor" d="M47 48 L49.4 48 L48.2 44 Z"/>
+          <!-- Crossguard -->
+          <rect x="41" y="107" width="14.4" height="3" fill="currentColor"/>
+          <!-- Grip -->
+          <rect x="46.6" y="110" width="3.2" height="8" fill="currentColor"/>
+          <!-- Pommel -->
+          <circle cx="48.2" cy="120" r="2.4" fill="currentColor"/>
+
+          <!-- Helm with slit + plume -->
+          <path fill="currentColor"
+                d="M62 98 Q62 88 72 88 Q82 88 82 98 L82 108 Q82 112 78 112 L66 112 Q62 112 62 108 Z"/>
+          <!-- Plume -->
+          <path fill="currentColor" opacity=".55"
+                d="M72 88 Q68 76 74 70 Q80 74 80 82 Q82 86 78 90 Q74 92 72 88 Z"/>
+          <!-- Visor slit (negative via white-like cut using opacity=0) -->
+          <rect x="66" y="100" width="12" height="1.6" fill="currentColor" opacity="0"/>
+
+          <!-- Torso / armor -->
+          <path fill="currentColor"
+                d="M60 112 L84 112 L90 140 L86 160 L58 160 L54 140 Z"/>
+          <!-- Chest crest line -->
+          <path fill="none" stroke="currentColor" stroke-width="1" opacity=".55"
+                d="M72 114 L72 158"/>
+
+          <!-- Right arm holding sword (goes up to grip at y=110) -->
+          <path fill="currentColor"
+                d="M56 116 L50 112 L46 116 L50 122 Z"/>
+          <!-- Left arm holding shield (bent across body) -->
+          <path fill="currentColor"
+                d="M88 118 L94 124 L96 140 L90 142 Z"/>
+
+          <!-- Shield — kite with 4-point star echoing the brand glyph -->
+          <path fill="currentColor"
+                d="M96 126 L114 130 L114 146 Q114 158 105 166 Q96 158 96 146 Z"/>
+          <path fill="currentColor" opacity=".15"
+                d="M100 134 L112 134 L112 144 Q112 156 105 160 Q98 156 98 144 Z"/>
+          <path fill="currentColor" opacity=".55"
+                d="M105 138 L107 144 L113 145 L107 146 L105 152 L103 146 L97 145 L103 144 Z"/>
+
+          <!-- Legs -->
+          <rect x="60" y="160" width="8" height="20" fill="currentColor"/>
+          <rect x="74" y="160" width="8" height="20" fill="currentColor"/>
+          <!-- Boots -->
+          <rect x="58" y="178" width="12" height="4" fill="currentColor"/>
+          <rect x="72" y="178" width="12" height="4" fill="currentColor"/>
+        </g>
+      </symbol>
     </defs>
   </svg>
 
@@ -210,7 +319,7 @@
 
         <aside class="hero__ornament" aria-hidden="true">
           <div class="hero__crest">
-            <svg viewBox="0 0 64 64" width="180" height="180"><use href="#crest-glyph"/></svg>
+            <svg viewBox="0 0 240 200" width="300" height="250"><use href="#hero-scene"/></svg>
           </div>
         </aside>
       </div>

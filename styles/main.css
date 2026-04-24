@@ -565,10 +565,11 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
 }
 .hero__crest {
   color: var(--accent);
-  opacity: .25;
+  opacity: .58;
   filter: drop-shadow(0 18px 40px color-mix(in srgb, var(--accent) 35%, transparent));
   animation: rise 1s var(--ease-out);
 }
+.hero__crest svg { max-width: 100%; height: auto; }
 
 /* =========================================================
    BUTTONS
@@ -1400,13 +1401,39 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
   .section__header { align-items: flex-start; }
 }
 @media (max-width: 680px) {
-  .quest-list { grid-template-columns: 1fr; }
+  main { padding-inline: 16px; }
+  .hero { padding: 28px 0 8px; }
+  .hero__content { gap: 12px; }
+  .hero__title { font-size: clamp(1.85rem, 7.2vw, 2.4rem); line-height: 1.08; }
+  .hero__lead { font-size: .94rem; }
+  .eyebrow { font-size: .7rem; padding: 4px 10px; }
+
+  /* Keep all three stats on one row — compact padding beats an orphan card. */
+  .hero__stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+  .stat-card { padding: 10px 10px; }
+  .stat-card__value { font-size: 1.15rem; }
+  .stat-card__label { font-size: .64rem; letter-spacing: .04em; }
+
   .hero__actions { flex-direction: column; align-items: stretch; }
   .hero__actions .btn { width: 100%; }
-  .hero__stats { grid-template-columns: 1fr 1fr; }
-  .hero__stats .stat-card:nth-child(3) { grid-column: span 2; }
+
+  .quest-list { grid-template-columns: 1fr; }
+  .section__header { gap: 12px; }
+  .section__toolbar { width: 100%; justify-content: space-between; }
+  .section__title { font-size: 1.5rem; }
+
   .field-row, .field-row--2-1 { grid-template-columns: 1fr; }
   .detail-actions .btn { flex: 1 1 100%; min-width: 0; }
+}
+@media (max-width: 420px) {
+  main { padding-inline: 12px; }
+  .stat-card { padding: 8px; }
+  .stat-card__value { font-size: 1rem; }
+  .stat-card__label { font-size: .58rem; }
+  .topbar__inner { gap: 6px; }
+  .brand__name { font-size: .95rem; }
+  .section__toolbar { gap: 6px; }
+  .filters .chip { padding: 6px 10px; font-size: .78rem; }
 }
 
 /* Reduced motion */
