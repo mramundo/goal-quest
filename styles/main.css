@@ -406,6 +406,14 @@ svg { fill: currentColor; }
 .icon-btn:hover { background: var(--surface-strong); color: var(--text); }
 .icon-btn:active { transform: scale(.95); }
 
+/* Theme toggle shows the icon of the mode you're about to switch TO:
+   sun while dark is active (click → light), moon while light is active
+   (click → dark). Only one is rendered at a time. */
+.theme-toggle__icon { display: none; }
+:root[data-mode="dark"] .theme-toggle__icon--sun,
+:root:not([data-mode]) .theme-toggle__icon--sun { display: block; }
+:root[data-mode="light"] .theme-toggle__icon--moon { display: block; }
+
 /* =========================================================
    PALETTE PICKER
    ========================================================= */
@@ -568,11 +576,40 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
 }
 .hero__crest {
   color: var(--accent);
-  opacity: .82;
-  filter: drop-shadow(0 18px 40px color-mix(in srgb, var(--accent) 35%, transparent));
   animation: rise 1s var(--ease-out);
 }
 .hero__crest svg { max-width: 100%; height: auto; }
+
+/* Woodcut plate: uses the real Dürer print as a raster asset and
+   re-tints it per palette via blend modes + filters. The image is
+   inked black on cream paper — multiply makes the cream fall away
+   over the page background so the ink settles into whichever colour
+   the active palette uses. Dark modes invert the plate first so the
+   ink reads as light strokes against the dark parchment. */
+.hero__woodcut {
+  margin: 0;
+  width: 100%;
+  max-width: 280px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: 0 18px 42px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+.hero__woodcut img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Knock out the paper colour of the scan and push the ink a little. */
+  filter: grayscale(1) contrast(1.15) brightness(.98);
+  mix-blend-mode: multiply;
+}
+/* Dark palettes: flip so the ink becomes light, then screen so the
+   (now-black) paper drops out over the dark background. */
+:root[data-mode="dark"] .hero__woodcut img,
+:root:not([data-mode]) .hero__woodcut img {
+  filter: grayscale(1) contrast(1.1) brightness(1.05) invert(1);
+  mix-blend-mode: screen;
+}
 
 /* =========================================================
    BUTTONS
