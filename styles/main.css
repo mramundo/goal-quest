@@ -568,7 +568,7 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
 }
 .hero__crest {
   color: var(--accent);
-  opacity: .58;
+  opacity: .82;
   filter: drop-shadow(0 18px 40px color-mix(in srgb, var(--accent) 35%, transparent));
   animation: rise 1s var(--ease-out);
 }
