@@ -287,6 +287,9 @@ svg { fill: currentColor; }
     var(--bg);
   animation: fade-in .4s var(--ease-out);
 }
+.onboarding[hidden] { display: none; }
+/* Also guard the other sections that might set a display-not-none via class */
+[hidden] { display: none !important; }
 .onboarding__card {
   max-width: 440px; width: 100%;
   padding: 44px 32px 36px;
