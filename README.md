@@ -15,7 +15,8 @@ No build step, no framework. All you need is a modern browser.
 
 - **HTML5** + **CSS custom properties** (token-based design system, 4 palettes × dark/light)
 - **ES modules** loaded directly by the browser (`<script type="module">`)
-- **localStorage** as the single source of truth (data is private, lives in this browser)
+- **Supabase** (Postgres + Row Level Security) as the source of truth —
+  anonymous auth means zero signup friction
 - **GitHub Pages** for deploy (workflow uploads the whole repo — nothing to compile)
 
 ## Themes
@@ -60,6 +61,7 @@ goal-quest/
 │   └── main.css            # design system (4 palettes × dark/light)
 ├── scripts/
 │   ├── app.js              # entry: theme, store, boot, hero recap
+│   ├── db.js               # Supabase client, anonymous auth, CRUD
 │   ├── quests.js           # list + inline detail + inline composer
 │   ├── progress.js         # inline log composer, chronicle, toasts
 │   └── hall.js             # Hall of Fame leaderboard
@@ -75,13 +77,26 @@ goal-quest/
 
 ## Data
 
-Everything stays in your browser under these `localStorage` keys:
+User data lives in Supabase (Postgres), scoped per anonymous user via
+Row Level Security — every row is filtered by `auth.uid()`.
 
-- `gq-quests` — quests with milestones
-- `gq-log` — action history
-- `gq-profile` — hero name and title
-- `gq-palette`, `gq-mode` — theme preferences
-- `gq-seeded` — flag "we've already loaded the initial examples"
+Tables:
+
+- `profiles` — hero name and title
+- `quests` — quests with milestones (stored as JSONB)
+- `quest_logs` — action history, FK to quests (cascade delete)
+
+Only theme preferences stay in `localStorage`:
+
+- `gq-palette`, `gq-mode` — picked palette and light/dark mode
+- `gq-auth` — Supabase session (managed by the client)
+
+Anonymous sign-in means every visitor gets a stable `auth.uid()` without
+signup. The session is persisted, so refreshing keeps your chronicle
+intact on the same device.
+
+**One-time setup:** enable Anonymous Sign-Ins in the Supabase dashboard
+→ Authentication → Providers → Anonymous.
 
 Secret shortcut: `Ctrl + Shift + E` exports a JSON of all state (handy for manual backups).
 

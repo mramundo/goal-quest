@@ -1,13 +1,20 @@
 /* =========================================================
    Goal Quest — App entry point
-   Wires up: theme, login/onboarding, reactive store, seed data,
+   Wires up: theme, Supabase session, reactive store, seed data,
    hero recap, footer meta. Delegates rendering to the three
-   feature modules (quests, hall, chronicle).
+   feature modules (quests, hall, chronicle). All user data lives
+   in Supabase — localStorage only stores palette/mode preferences
+   and the auth session (handled by the supabase-js client).
    ========================================================= */
 
 import { initQuests, openQuestComposer, refreshQuests, closeComposer } from './quests.js';
 import { initProgress, refreshChronicle, flashToast } from './progress.js';
 import { initHall, refreshHall } from './hall.js';
+import {
+  ensureSession, loadAll, upsertProfile,
+  insertQuest, patchQuest, deleteQuest,
+  insertLog, seedInitialQuests,
+} from './db.js';
 
 /* ---------- DOM helpers ---------- */
 export const $  = (sel, root = document) => root.querySelector(sel);
@@ -22,13 +29,10 @@ const CONFIG = {
 
 const LOCALE = 'en-US';
 
+// Only theme prefs live in localStorage now — user data is in Supabase.
 const STORAGE = {
   palette: 'gq-palette',
   mode:    'gq-mode',
-  quests:  'gq-quests',
-  log:     'gq-log',
-  profile: 'gq-profile',
-  seeded:  'gq-seeded',
 };
 
 const PALETTES = ['parchment', 'tavern', 'elven-forest', 'frozen-realm'];
@@ -146,23 +150,6 @@ async function fetchJSON(url) {
   }
 }
 
-/* ---------- Persistence ---------- */
-function loadLocal(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key);
-    if (raw == null) return fallback;
-    return JSON.parse(raw);
-  } catch { return fallback; }
-}
-function saveLocal(key, val) {
-  try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch (err) {
-    console.warn(`[storage] save failed for ${key}:`, err);
-    throw err; // let callers surface the failure to the user
-  }
-}
-
 /* ---------- Formatting utils ---------- */
 export const fmt = {
   date(iso) {
@@ -204,8 +191,14 @@ export const fmt = {
   },
 };
 
-export function uid(prefix = 'id') {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+/**
+ * Every persisted id needs to be a real UUID because the DB columns
+ * are uuid-typed. The `prefix` argument is kept for call-site
+ * readability but ignored.
+ */
+export function uid(_prefix = 'id') {
+  return (crypto.randomUUID && crypto.randomUUID()) ||
+         `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
 export function escapeHtml(s) {
@@ -266,11 +259,9 @@ function renderHeroRecap(store) {
   animateNumber($('#heroXp'), m.totalXp);
   animateNumber($('#heroMilestones'), m.milestonesUnlocked);
 
-  // Hero chip in topbar
   const chipLabel = $('#heroChipLabel');
   if (chipLabel) chipLabel.textContent = profile.name || 'Traveler';
 
-  // Hero greeting
   const greet = $('#heroGreeting');
   if (greet) {
     const hour = new Date().getHours();
@@ -290,76 +281,69 @@ function setMeta() {
   const y = $('#year');
   if (y) y.textContent = new Date().getFullYear();
   const fd = $('#footerData');
-  if (fd) fd.textContent = 'localStorage';
-}
-
-/* ---------- Seed initial data ---------- */
-async function seedIfEmpty(store) {
-  const already = localStorage.getItem(STORAGE.seeded) === '1';
-  const quests = store.get('quests') ?? [];
-
-  if (!already && quests.length === 0) {
-    const seeds = await fetchJSON(CONFIG.seedQuests);
-    if (Array.isArray(seeds?.items)) {
-      const now = new Date().toISOString();
-      const withIds = seeds.items.map(s => ({
-        id: uid('q'),
-        title: s.title,
-        description: s.description ?? '',
-        icon: s.icon ?? '📜',
-        topic: s.topic ?? 'general',
-        createdAt: now,
-        completedAt: null,
-        milestones: (s.milestones ?? []).map(m => ({
-          id: uid('m'),
-          points: clamp(Number(m.points) || 0, 1, 99),
-          title: m.title ?? '',
-          reward: m.reward ?? '',
-        })),
-      }));
-      store.set('quests', withIds);
-      saveLocal(STORAGE.quests, withIds);
-    }
-    localStorage.setItem(STORAGE.seeded, '1');
-  }
+  if (fd) fd.textContent = 'Supabase';
 }
 
 /* ---------- Store mutations ----------
-   IMPORTANT: write to localStorage FIRST, then fire subscribers.
-   If a subscriber throws the persistence must already be done. */
+   Pattern: optimistic in-memory update first (UI responds instantly),
+   then fire the DB write. On failure we surface a toast and log the
+   error — the user can refresh to re-hydrate from the source of truth. */
+
+// Module-scoped user id — set at boot once ensureSession resolves.
+let currentUid = null;
+
+function surfaceDbError(prefix, err) {
+  console.error(`[db] ${prefix}:`, err);
+  flashToast({
+    kind: 'error',
+    title: 'Sync failed',
+    desc: err?.message ?? 'Your change may not have been saved. Refresh to retry.',
+  });
+}
+
 export function addQuest(store, quest) {
   const list = [quest, ...(store.get('quests') ?? [])];
-  saveLocal(STORAGE.quests, list);
   store.set('quests', list);
+  if (!currentUid) return;
+  insertQuest(currentUid, quest).catch(err => surfaceDbError('addQuest', err));
 }
+
 export function updateQuest(store, id, patch) {
   const list = (store.get('quests') ?? []).map(q => q.id === id ? { ...q, ...patch } : q);
-  saveLocal(STORAGE.quests, list);
   store.set('quests', list);
+  if (!currentUid) return;
+  patchQuest(id, patch).catch(err => surfaceDbError('updateQuest', err));
 }
+
 export function removeQuest(store, id) {
   const list = (store.get('quests') ?? []).filter(q => q.id !== id);
-  saveLocal(STORAGE.quests, list);
   store.set('quests', list);
 
+  // DB cascades logs, but we need to drop them from the local store too.
   const log = (store.get('log') ?? []).filter(l => l.questId !== id);
-  saveLocal(STORAGE.log, log);
   store.set('log', log);
+
+  if (!currentUid) return;
+  deleteQuest(id).catch(err => surfaceDbError('removeQuest', err));
 }
+
 export function appendLog(store, entry) {
   const list = [entry, ...(store.get('log') ?? [])];
-  saveLocal(STORAGE.log, list);
   store.set('log', list);
+  if (!currentUid) return;
+  insertLog(currentUid, entry).catch(err => surfaceDbError('appendLog', err));
 }
+
 export function updateProfile(store, patch) {
   const profile = { ...(store.get('profile') ?? {}), ...patch };
-  saveLocal(STORAGE.profile, profile);
   store.set('profile', profile);
+  if (!currentUid) return;
+  upsertProfile(currentUid, profile).catch(err => surfaceDbError('updateProfile', err));
 }
 
 export function exportEverything(store) {
   return {
-    schema: 1,
+    schema: 2,
     exportedAt: new Date().toISOString(),
     quests: store.get('quests') ?? [],
     log: store.get('log') ?? [],
@@ -371,7 +355,6 @@ export function exportEverything(store) {
 function hideOnboarding(section) {
   if (!section) return;
   section.hidden = true;
-  // Defensive: even if another stylesheet overrides [hidden], force display:none.
   section.style.display = 'none';
 }
 function showOnboarding(section) {
@@ -395,26 +378,15 @@ function initOnboarding(store) {
   showOnboarding(section);
   requestAnimationFrame(() => input.focus());
 
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const name = input.value.trim().slice(0, 32);
     if (!name) { input.focus(); return; }
 
-    // Hide overlay FIRST so the user sees progress even if a
-    // downstream subscriber throws.
+    // Hide overlay immediately for a responsive feel; the DB write
+    // happens in the background and surfaces its own error toast.
     hideOnboarding(section);
-
-    try {
-      updateProfile(store, { name, title: 'Traveler' });
-    } catch (err) {
-      console.error('[onboarding] profile save failed:', err);
-      flashToast({
-        kind: 'error',
-        title: 'Could not save your name',
-        desc: 'Check that site storage is enabled in your browser.',
-      });
-      return;
-    }
+    updateProfile(store, { name, title: 'Traveler' });
 
     flashToast({
       kind: 'success',
@@ -437,29 +409,75 @@ function initEditHero(store) {
   });
 }
 
+/* ---------- Seed initial data ---------- */
+async function seedIfEmpty(store) {
+  if (!currentUid) return;
+  const quests = store.get('quests') ?? [];
+  if (quests.length > 0) return;
+
+  const seeds = await fetchJSON(CONFIG.seedQuests);
+  if (!Array.isArray(seeds?.items)) return;
+
+  const inserted = await seedInitialQuests(currentUid, seeds.items);
+  if (inserted.length) store.set('quests', inserted);
+}
+
+/* ---------- Fatal boot error helper ---------- */
+function showBootError(message) {
+  const onboarding = $('#onboarding');
+  if (!onboarding) return;
+  onboarding.hidden = false;
+  onboarding.style.removeProperty('display');
+  onboarding.innerHTML = `
+    <div class="onboarding__card">
+      <h1 class="onboarding__title">Can't reach the realm</h1>
+      <p class="onboarding__lead" style="color: var(--danger);">${escapeHtml(message)}</p>
+      <p class="onboarding__hint">Refresh after checking your connection.</p>
+    </div>`;
+}
+
 /* ---------- Boot ---------- */
 (async function boot() {
   initTheme();
   setMeta();
 
   const store = createStore({
-    quests:     loadLocal(STORAGE.quests, []),
-    log:        loadLocal(STORAGE.log, []),
-    profile:    loadLocal(STORAGE.profile, {}),
-    heroes:     [],
+    quests: [],
+    log: [],
+    profile: {},
+    heroes: [],
     actionsLib: {},
   });
 
   // Expose for debugging
   window.__gq = { store, exportEverything };
 
-  const [heroes, actionsLib] = await Promise.all([
+  // 1. Get (or create) an anonymous Supabase session — RLS binds rows to auth.uid().
+  let session;
+  try {
+    session = await ensureSession();
+    currentUid = session.user.id;
+  } catch (err) {
+    console.error('[boot] auth failed:', err);
+    showBootError(err.message ?? 'Authentication error');
+    return;
+  }
+
+  // 2. Load seeds + user data in parallel.
+  const [heroes, actionsLib, userData] = await Promise.all([
     fetchJSON(CONFIG.seedHeroes),
     fetchJSON(CONFIG.actionsLib),
+    loadAll(currentUid),
   ]);
   store.set('heroes', Array.isArray(heroes?.items) ? heroes.items : []);
   store.set('actionsLib', actionsLib ?? {});
+  store.patch({
+    quests: userData.quests,
+    log: userData.log,
+    profile: userData.profile,
+  });
 
+  // 3. First-time user with no quests → drop in seed examples.
   await seedIfEmpty(store);
 
   initOnboarding(store);
@@ -503,7 +521,6 @@ function initEditHero(store) {
       URL.revokeObjectURL(url);
       flashToast({ kind: 'success', title: 'Backup exported', desc: 'JSON saved to disk.' });
     }
-    // Esc closes composer
     if (e.key === 'Escape') closeComposer();
   });
 })();
