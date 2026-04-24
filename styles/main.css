@@ -1644,6 +1644,82 @@ main { max-width: var(--container); margin: 0 auto; padding: 0 var(--gutter); }
 .auth-form__error[hidden] { display: none; }
 
 /* =========================================================
+   PASSWORD FIELD — show/hide toggle (spectacles)
+   The wrap sits between the label and the input so the button
+   can overlay the right edge without breaking .field layout.
+   ========================================================= */
+.field--password .field__password-wrap {
+  position: relative;
+  display: block;
+}
+.field--password .field__input {
+  width: 100%;
+  padding-right: 42px; /* room for the toggle button */
+}
+.field__toggle {
+  position: absolute;
+  top: 50%; right: 6px;
+  transform: translateY(-50%);
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-xs);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.field__toggle:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+.field__toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.field__toggle-icon { display: block; }
+/* Default (password hidden) → show the spectacles. */
+.field__toggle[aria-pressed="false"] .field__toggle-icon--hide { display: none; }
+/* Pressed (password visible) → show the slashed spectacles. */
+.field__toggle[aria-pressed="true"]  .field__toggle-icon--show { display: none; }
+
+/* =========================================================
+   PASSWORD REQUIREMENTS checklist (signup)
+   ========================================================= */
+.auth-form__reqs {
+  list-style: none;
+  margin: -4px 0 0;
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: .78rem;
+}
+@media (max-width: 480px) {
+  .auth-form__reqs { grid-template-columns: 1fr; }
+}
+.auth-form__reqs li {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text-dim);
+  transition: color .15s;
+}
+.auth-form__reqs li svg {
+  flex-shrink: 0;
+  color: color-mix(in srgb, var(--text-dim) 60%, transparent);
+  transition: color .15s;
+}
+.auth-form__reqs li.is-valid {
+  color: var(--text);
+}
+.auth-form__reqs li.is-valid svg {
+  color: var(--success, var(--accent));
+}
+
+/* =========================================================
    HOW IT WORKS (landing explainer, signed-out)
    ========================================================= */
 .how-grid {

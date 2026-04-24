@@ -1,15 +1,15 @@
 {
   "updated": "2026-04-24",
   "items": [
-    { "id": "h-galahad", "name": "Sir Galahad",       "title": "Seeker of the Grail",              "xp": 12800 },
-    { "id": "h-lyrael",  "name": "Lyrael of Aldaron", "title": "Archer of the Silvan Elves",       "xp": 9600 },
-    { "id": "h-thora",   "name": "Thora Stonehold",   "title": "Warden of the Northern Towers",    "xp": 7400 },
-    { "id": "h-corwin",  "name": "Master Corwin",     "title": "Archmage of the Umber Library",    "xp": 5200 },
-    { "id": "h-ashlyn",  "name": "Ashlyn Swiftwind",  "title": "Courier of the Merchants' League", "xp": 3800 },
-    { "id": "h-brant",   "name": "Brant Trueheart",   "title": "Keeper of the Griffin Tavern",     "xp": 2400 },
-    { "id": "h-ivor",    "name": "Ivor of the Ice",   "title": "Scout of the Frozen Peaks",        "xp": 1500 },
-    { "id": "h-mira",    "name": "Mira Oakleaf",      "title": "Herbalist of the Elder Wood",      "xp": 900 },
-    { "id": "h-percy",   "name": "Percy the Scribe",  "title": "Chronicler of the Small Villages", "xp": 400 },
-    { "id": "h-tomas",   "name": "Tomas the Novice",  "title": "Apprentice of the Chapel",         "xp": 120 }
+    { "id": "h-galahad", "name": "Sir Galahad",       "title": "Seeker of the Grail",              "xp": 12800, "activeQuests": 5, "chestsOpened": 18 },
+    { "id": "h-lyrael",  "name": "Lyrael of Aldaron", "title": "Archer of the Silvan Elves",       "xp": 9600,  "activeQuests": 4, "chestsOpened": 14 },
+    { "id": "h-thora",   "name": "Thora Stonehold",   "title": "Warden of the Northern Towers",    "xp": 7400,  "activeQuests": 4, "chestsOpened": 11 },
+    { "id": "h-corwin",  "name": "Master Corwin",     "title": "Archmage of the Umber Library",    "xp": 5200,  "activeQuests": 3, "chestsOpened": 8 },
+    { "id": "h-ashlyn",  "name": "Ashlyn Swiftwind",  "title": "Courier of the Merchants' League", "xp": 3800,  "activeQuests": 3, "chestsOpened": 6 },
+    { "id": "h-brant",   "name": "Brant Trueheart",   "title": "Keeper of the Griffin Tavern",     "xp": 2400,  "activeQuests": 2, "chestsOpened": 4 },
+    { "id": "h-ivor",    "name": "Ivor of the Ice",   "title": "Scout of the Frozen Peaks",        "xp": 1500,  "activeQuests": 2, "chestsOpened": 3 },
+    { "id": "h-mira",    "name": "Mira Oakleaf",      "title": "Herbalist of the Elder Wood",      "xp": 900,   "activeQuests": 1, "chestsOpened": 2 },
+    { "id": "h-percy",   "name": "Percy the Scribe",  "title": "Chronicler of the Small Villages", "xp": 400,   "activeQuests": 1, "chestsOpened": 1 },
+    { "id": "h-tomas",   "name": "Tomas the Novice",  "title": "Apprentice of the Chapel",         "xp": 120,   "activeQuests": 1, "chestsOpened": 0 }
   ]
 }

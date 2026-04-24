@@ -250,6 +250,14 @@ export function progressFor(quest, log) {
 /* ---------- Hero recap numbers ---------- */
 function animateNumber(el, target) {
   if (!el || !Number.isFinite(target)) return;
+  // If the tab is in the background the RAF queue is throttled and the
+  // step loop can sit for seconds — which would leave the placeholder
+  // '—' on screen. Write the final value first so the number is always
+  // correct, then run the easing animation on top when we're visible.
+  const finalText = Math.round(target).toLocaleString(LOCALE);
+  el.textContent = finalText;
+  if (document.hidden) return;
+
   const duration = 700;
   const start = performance.now();
   function step(now) {
@@ -257,6 +265,7 @@ function animateNumber(el, target) {
     const eased = 1 - Math.pow(1 - t, 3);
     el.textContent = Math.round(target * eased).toLocaleString(LOCALE);
     if (t < 1) requestAnimationFrame(step);
+    else el.textContent = finalText;
   }
   requestAnimationFrame(step);
 }
@@ -266,11 +275,28 @@ function renderHeroRecap(store) {
   const log    = store.get('log') ?? [];
   const profile = store.get('profile') ?? {};
   const session = store.get('session');
+  const heroes  = store.get('heroes') ?? [];
   const m = computeMetrics(quests, log);
 
-  animateNumber($('#heroQuests'), m.activeQuests);
-  animateNumber($('#heroXp'), m.totalXp);
-  animateNumber($('#heroMilestones'), m.milestonesUnlocked);
+  // Signed-out visitors see realm-wide totals aggregated from the seed
+  // heroes so the three hero cards never flash as zero placeholders. Once
+  // signed in, the same cards flip to the player's personal metrics.
+  const realm = heroes.reduce(
+    (acc, h) => ({
+      activeQuests: acc.activeQuests + (Number(h.activeQuests) || 0),
+      totalXp:      acc.totalXp      + (Number(h.xp)           || 0),
+      chests:       acc.chests       + (Number(h.chestsOpened) || 0),
+    }),
+    { activeQuests: 0, totalXp: 0, chests: 0 },
+  );
+
+  const display = session
+    ? { activeQuests: m.activeQuests, totalXp: m.totalXp, chests: m.milestonesUnlocked }
+    : realm;
+
+  animateNumber($('#heroQuests'), display.activeQuests);
+  animateNumber($('#heroXp'), display.totalXp);
+  animateNumber($('#heroMilestones'), display.chests);
 
   // Chip only renders when signed in — hidden by CSS otherwise.
   const chipLabel = $('#heroChipLabel');
@@ -391,6 +417,52 @@ function applyAuthState(store) {
   document.documentElement.dataset.auth = session ? 'signed-in' : 'signed-out';
 }
 
+/* ---------- Password rules + show/hide toggle ---------- */
+/**
+ * Modern password checklist — every rule must pass before signup
+ * submission is allowed. Keep labels in sync with the `data-rule`
+ * markers in the signup form's `data-pw-reqs` list.
+ */
+const PASSWORD_RULES = [
+  { key: 'length', test: (pw) => pw.length >= 8 },
+  { key: 'upper',  test: (pw) => /[A-Z]/.test(pw) },
+  { key: 'lower',  test: (pw) => /[a-z]/.test(pw) },
+  { key: 'digit',  test: (pw) => /\d/.test(pw) },
+  { key: 'symbol', test: (pw) => /[^A-Za-z0-9]/.test(pw) },
+];
+
+function checkPasswordRules(pw) {
+  return Object.fromEntries(PASSWORD_RULES.map(r => [r.key, r.test(pw)]));
+}
+
+/** All rules pass → signup password is strong enough. */
+function isPasswordStrong(pw) {
+  return PASSWORD_RULES.every(r => r.test(pw));
+}
+
+function renderPasswordReqs(listEl, pw) {
+  if (!listEl) return;
+  const results = checkPasswordRules(pw);
+  listEl.querySelectorAll('[data-rule]').forEach(li => {
+    li.classList.toggle('is-valid', !!results[li.dataset.rule]);
+  });
+}
+
+/** Toggle show/hide on any input paired with [data-password-toggle]. */
+function initPasswordToggles(scope = document) {
+  scope.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-password-toggle]');
+    if (!btn) return;
+    const input = btn.closest('.field__password-wrap')?.querySelector('input');
+    if (!input) return;
+    const next = input.type === 'password' ? 'text' : 'password';
+    input.type = next;
+    const pressed = next === 'text';
+    btn.setAttribute('aria-pressed', String(pressed));
+    btn.setAttribute('aria-label', pressed ? 'Hide password' : 'Show password');
+  });
+}
+
 /* ---------- Auth dialog (sign in / sign up) ---------- */
 function openAuthDialog(tab = 'signin') {
   const dlg = $('#authDialog');
@@ -476,6 +548,10 @@ function initAuthDialog(store) {
   const dlg = $('#authDialog');
   if (!dlg) return;
 
+  // Password show/hide buttons (spectacles) — scoped to the dialog so we
+  // don't catch unrelated password fields elsewhere.
+  initPasswordToggles(dlg);
+
   // Openers scattered across the page (hero CTA, topbar pill, empty state…)
   document.addEventListener('click', (e) => {
     const opener = e.target.closest('[data-auth-open]');
@@ -530,26 +606,57 @@ function initAuthDialog(store) {
     });
   });
 
-  // Sign-up submit (stub — no real account yet)
+  // Sign-up submit (stub — no real account yet). Validation still runs
+  // so the UX mirrors the real thing: strong password + confirm match.
   const signupForm = dlg.querySelector('[data-auth-panel="signup"]');
-  signupForm?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const err = signupForm.querySelector('[data-auth-error]');
-    if (err) { err.hidden = true; err.textContent = ''; }
-    const heroName = signupForm.elements.heroName.value.trim().slice(0, 32);
-    const email = signupForm.elements.email.value.trim();
-    if (!email || !heroName) {
-      if (err) { err.hidden = false; err.textContent = 'Fill in every field to forge your chronicle.'; }
-      return;
-    }
-    flashToast({
-      kind: 'success',
-      title: 'Thanks for signing up!',
-      desc: 'Account creation goes live once the backend is wired up. For now, sign in with the demo credentials.',
+  if (signupForm) {
+    const reqsList = signupForm.querySelector('[data-pw-reqs]');
+    const pwInput = signupForm.elements.password;
+    // Live checklist — each keystroke flips matching <li>.is-valid.
+    pwInput?.addEventListener('input', () => {
+      renderPasswordReqs(reqsList, pwInput.value);
     });
-    signupForm.reset();
-    switchAuthTab('signin');
-  });
+    renderPasswordReqs(reqsList, pwInput?.value || '');
+
+    signupForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const err = signupForm.querySelector('[data-auth-error]');
+      if (err) { err.hidden = true; err.textContent = ''; }
+
+      const email    = signupForm.elements.email.value.trim();
+      const password = signupForm.elements.password.value;
+      const confirm  = signupForm.elements.passwordConfirm.value;
+      const heroName = signupForm.elements.heroName.value.trim().slice(0, 32);
+
+      const showErr = (msg) => {
+        if (!err) return;
+        err.hidden = false;
+        err.textContent = msg;
+      };
+
+      if (!email || !heroName) {
+        showErr('Fill in every field to forge your chronicle.');
+        return;
+      }
+      if (!isPasswordStrong(password)) {
+        showErr('Your password must meet every requirement above.');
+        return;
+      }
+      if (password !== confirm) {
+        showErr('The two passwords don\u2019t match. Try again.');
+        return;
+      }
+
+      flashToast({
+        kind: 'success',
+        title: 'Thanks for signing up!',
+        desc: 'Account creation goes live once the backend is wired up. For now, sign in with the demo credentials.',
+      });
+      signupForm.reset();
+      renderPasswordReqs(reqsList, '');
+      switchAuthTab('signin');
+    });
+  }
 }
 
 function initSignOut(store) {
