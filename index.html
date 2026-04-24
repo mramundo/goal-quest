@@ -224,15 +224,15 @@
 
         <aside class="hero__ornament" aria-hidden="true">
           <!-- Dürer, Saint George and the Dragon (public domain).
-               The plate is an SVG whose embedded raster feeds a mask;
-               a <rect fill="currentColor"> inside that mask makes the
-               ink take whatever colour this container carries, so the
-               woodcut follows the active palette. Loaded inline via
-               fetch() by scripts/app.js — <img src> would have sand-
-               boxed the SVG and broken both the xlink:href and the
-               currentColor inheritance. -->
+               scripts/app.js fetches the base64 raster below, inlines it
+               as a data: URL inside a freshly built SVG, and masks a
+               `currentColor` rect through it. Result: the ink tracks
+               whatever colour this container carries, so the woodcut
+               follows the active palette without duotone filters. -->
           <div class="hero__woodcut"
-               data-svg-src="assets/durer-knight-embedded.svg"></div>
+               data-engraving-src="assets/durer-knight-greyscale.b64.txt"
+               data-engraving-w="820"
+               data-engraving-h="1200"></div>
         </aside>
       </div>
     </section>

@@ -436,45 +436,120 @@ function showBootError(message) {
     </div>`;
 }
 
-/* ---------- Inline SVG plates ----------
-   Any element with `data-svg-src` gets that SVG fetched and inserted
-   inline. Doing it this way (rather than via <img src="..."> or
-   <object>) keeps the SVG in the host document, so its `currentColor`
-   fill inherits from CSS and its relative `xlink:href` raster still
-   resolves. Idempotent: the attribute is removed after injection so
-   re-runs are safe. */
-async function inlineSvgPlates() {
-  const hosts = document.querySelectorAll('[data-svg-src]');
+/* ---------- Dragon engraving (Opzione A) ----------
+   For each element with `data-engraving-src` pointing at a base64 JPEG
+   text file, build an SVG in-memory whose <mask> converts the greyscale
+   raster into an ink channel (per-channel inversion so the default
+   luminance mask reveals the dark strokes). A rect filled with
+   `currentColor` is clipped by that mask — the ink then follows the
+   host's CSS `color`, so swapping the palette recolors the engraving.
+
+   Why not ship a static .svg with <image href="asset.jpg">? Two reasons:
+   1. <img src="file.svg"> sandboxes the SVG document, blocking the
+      external JPEG fetch and severing `currentColor` inheritance.
+   2. Inlining the static SVG via innerHTML works, but any middleware
+      that rewrites relative hrefs breaks it. A data: URL built from a
+      base64 blob avoids all of that. */
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const XLINK_NS = 'http://www.w3.org/1999/xlink';
+
+async function buildEngravings() {
+  const hosts = document.querySelectorAll('[data-engraving-src]');
   await Promise.all([...hosts].map(async (host) => {
-    const src = host.getAttribute('data-svg-src');
+    const src = host.getAttribute('data-engraving-src');
     if (!src) return;
     try {
       const res = await fetch(src, { cache: 'no-cache' });
       if (!res.ok) throw new Error(`${res.status}`);
-      let svg = await res.text();
-      // Relative `(xlink:)?href` values inside the SVG were resolved
-      // against the SVG's own URL while it lived on disk. Once we
-      // splice the markup into index.html they'd resolve against this
-      // document's base URL and 404. Rewrite them to URLs anchored at
-      // the SVG's original directory so embedded rasters still load.
-      const svgDir = new URL(src, document.baseURI).href.replace(/[^/]+$/, '');
-      svg = svg.replace(
-        /(\s(?:xlink:)?href\s*=\s*")(?!https?:|\/|#|data:|blob:)([^"]+)(")/g,
-        (_, pre, path, post) => `${pre}${svgDir}${path}${post}`
-      );
-      host.innerHTML = svg;
-      host.removeAttribute('data-svg-src');
+      const b64 = (await res.text()).trim();
+      const dataUrl = 'data:image/jpeg;base64,' + b64;
+      const viewW = Number(host.getAttribute('data-engraving-w')) || 820;
+      const viewH = Number(host.getAttribute('data-engraving-h')) || 1200;
+      host.replaceChildren(buildEngravingSvg(dataUrl, viewW, viewH));
+      host.removeAttribute('data-engraving-src');
     } catch (err) {
-      console.warn(`[plate] failed to load ${src}:`, err.message);
+      console.warn(`[engraving] failed to load ${src}:`, err.message);
     }
   }));
+}
+
+function buildEngravingSvg(dataUrl, W, H) {
+  const uid = `gq-ink-${Math.random().toString(36).slice(2, 8)}`;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+  svg.setAttribute('role', 'img');
+  svg.setAttribute('aria-label',
+    'Saint George and the dragon — after Albrecht Dürer (c. 1505)');
+
+  const defs = document.createElementNS(SVG_NS, 'defs');
+
+  const filter = document.createElementNS(SVG_NS, 'filter');
+  filter.setAttribute('id', `${uid}-filter`);
+  filter.setAttribute('x', '0');
+  filter.setAttribute('y', '0');
+  filter.setAttribute('width', '100%');
+  filter.setAttribute('height', '100%');
+  filter.setAttribute('color-interpolation-filters', 'sRGB');
+
+  const cm = document.createElementNS(SVG_NS, 'feColorMatrix');
+  cm.setAttribute('type', 'matrix');
+  // Per-channel inversion: paper (R=G=B≈1) → 0, ink (R=G=B≈0) → 1.
+  // Output stays greyscale so a default luminance mask picks it up.
+  cm.setAttribute(
+    'values',
+    '-1.35 0 0 0 1.30  0 -1.35 0 0 1.30  0 0 -1.35 0 1.30  0 0 0 0 1'
+  );
+  filter.appendChild(cm);
+
+  const ct = document.createElementNS(SVG_NS, 'feComponentTransfer');
+  const ft = document.createElementNS(SVG_NS, 'feFuncA');
+  ft.setAttribute('type', 'gamma');
+  ft.setAttribute('amplitude', '1');
+  ft.setAttribute('exponent', '0.85');
+  ft.setAttribute('offset', '0');
+  ct.appendChild(ft);
+  filter.appendChild(ct);
+  defs.appendChild(filter);
+
+  const mask = document.createElementNS(SVG_NS, 'mask');
+  mask.setAttribute('id', `${uid}-mask`);
+  mask.setAttribute('maskUnits', 'userSpaceOnUse');
+  mask.setAttribute('x', '0');
+  mask.setAttribute('y', '0');
+  mask.setAttribute('width', String(W));
+  mask.setAttribute('height', String(H));
+
+  const image = document.createElementNS(SVG_NS, 'image');
+  image.setAttributeNS(XLINK_NS, 'xlink:href', dataUrl);
+  image.setAttribute('href', dataUrl);
+  image.setAttribute('x', '0');
+  image.setAttribute('y', '0');
+  image.setAttribute('width', String(W));
+  image.setAttribute('height', String(H));
+  image.setAttribute('filter', `url(#${uid}-filter)`);
+  image.setAttribute('preserveAspectRatio', 'none');
+  mask.appendChild(image);
+  defs.appendChild(mask);
+  svg.appendChild(defs);
+
+  const rect = document.createElementNS(SVG_NS, 'rect');
+  rect.setAttribute('x', '0');
+  rect.setAttribute('y', '0');
+  rect.setAttribute('width', String(W));
+  rect.setAttribute('height', String(H));
+  rect.setAttribute('fill', 'currentColor');
+  rect.setAttribute('mask', `url(#${uid}-mask)`);
+  svg.appendChild(rect);
+
+  return svg;
 }
 
 /* ---------- Boot ---------- */
 (async function boot() {
   initTheme();
   setMeta();
-  inlineSvgPlates();
+  buildEngravings();
 
   const store = createStore({
     quests: [],
