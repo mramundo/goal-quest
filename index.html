@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-auth="signed-out">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -15,35 +15,84 @@
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
 </head>
 <body>
-  <a class="skip-link" href="#main">Skip to content</a>
 
-  <!-- ========= Login / Onboarding ========= -->
-  <section class="onboarding" id="onboarding" hidden>
-    <div class="onboarding__card">
-      <div class="onboarding__crest" aria-hidden="true">
-        <svg viewBox="0 0 64 64" width="72" height="72"><use href="#crest-glyph"/></svg>
+  <!-- ========= Auth dialog (sign in / sign up) =========
+       Hidden by default. Opened by any element carrying [data-auth-open].
+       Closed by [data-auth-close], the backdrop, or the Escape key. -->
+  <div class="auth-dialog" id="authDialog" role="dialog" aria-modal="true"
+       aria-labelledby="authDialogTitle" hidden>
+    <div class="auth-dialog__backdrop" data-auth-close></div>
+    <div class="auth-dialog__card">
+      <button class="auth-dialog__close" type="button"
+              data-auth-close aria-label="Close">
+        <svg viewBox="0 0 24 24" width="18" height="18"><use href="#i-close"/></svg>
+      </button>
+      <div class="auth-dialog__crest" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="56" height="56"><use href="#crest-sparkle"/></svg>
       </div>
-      <h1 class="onboarding__title">Welcome, traveler</h1>
-      <p class="onboarding__lead">
-        What name shall history remember? Pick a name — your chronicle
-        starts right after. No password, no email.
+      <h2 id="authDialogTitle" class="auth-dialog__title">Enter the realm</h2>
+      <p class="auth-dialog__lead">
+        Sign in to open your chronicle — or forge a new one.
       </p>
-      <form class="onboarding__form" id="loginForm">
+
+      <div class="auth-tabs" role="tablist" aria-label="Authentication">
+        <button class="auth-tabs__tab is-active" type="button"
+                role="tab" aria-selected="true"
+                data-auth-tab="signin">Sign in</button>
+        <button class="auth-tabs__tab" type="button"
+                role="tab" aria-selected="false"
+                data-auth-tab="signup">Create account</button>
+      </div>
+
+      <form class="auth-form" data-auth-panel="signin" novalidate>
+        <label class="field">
+          <span class="field__label">Email</span>
+          <input class="field__input" type="email" name="email" required
+                 autocomplete="email" placeholder="you@realm.com" />
+        </label>
+        <label class="field">
+          <span class="field__label">Password</span>
+          <input class="field__input" type="password" name="password" required
+                 autocomplete="current-password" placeholder="••••••••" />
+        </label>
+        <p class="auth-form__error" data-auth-error hidden></p>
+        <button class="btn btn--primary auth-form__submit" type="submit">
+          <svg width="16" height="16"><use href="#i-sparkle"/></svg>
+          Enter the realm
+        </button>
+        <p class="auth-form__hint">
+          Demo credentials: <code>demo@demo.com</code> / <code>Password@1</code>
+        </p>
+      </form>
+
+      <form class="auth-form" data-auth-panel="signup" hidden novalidate>
+        <label class="field">
+          <span class="field__label">Email</span>
+          <input class="field__input" type="email" name="email" required
+                 autocomplete="email" placeholder="you@realm.com" />
+        </label>
+        <label class="field">
+          <span class="field__label">Password</span>
+          <input class="field__input" type="password" name="password" required
+                 minlength="8" autocomplete="new-password" placeholder="at least 8 characters" />
+        </label>
         <label class="field">
           <span class="field__label">Hero name</span>
-          <input class="field__input" id="heroNameInput" type="text" required
+          <input class="field__input" type="text" name="heroName" required
                  maxlength="32" autocomplete="off" spellcheck="false"
                  placeholder="e.g. Aelar of the Western Reach" />
         </label>
-        <div class="onboarding__actions">
-          <button class="btn btn--primary" type="submit">Begin your chronicle</button>
-        </div>
+        <p class="auth-form__error" data-auth-error hidden></p>
+        <button class="btn btn--primary auth-form__submit" type="submit">
+          <svg width="16" height="16"><use href="#i-plus"/></svg>
+          Forge your chronicle
+        </button>
+        <p class="auth-form__hint">
+          You can rename your hero any time from the Chronicle.
+        </p>
       </form>
-      <p class="onboarding__hint">
-        You can change your name later from the Chronicle section.
-      </p>
     </div>
-  </section>
+  </div>
 
   <!-- ========= Topbar ========= -->
   <header class="topbar" role="banner">
@@ -56,16 +105,42 @@
       </a>
 
       <nav class="nav" aria-label="Primary">
-        <a href="#quests-section"  class="nav__link">Quests</a>
-        <a href="#hall-section"    class="nav__link">Hall of Fame</a>
-        <a href="#chronicle-section" class="nav__link">Chronicle</a>
+        <span class="nav__group only-signed-in">
+          <a href="#quests-section"    class="nav__link">Quests</a>
+          <a href="#chronicle-section" class="nav__link">Chronicle</a>
+          <a href="#hall-section"      class="nav__link">Hall of Fame</a>
+        </span>
+        <span class="nav__group only-signed-out">
+          <a href="#hero-section"   class="nav__link">Overview</a>
+          <a href="#how-it-works"   class="nav__link">How it works</a>
+          <a href="#hall-section"   class="nav__link">Leaderboard</a>
+        </span>
       </nav>
 
       <div class="topbar__actions">
-        <span class="hero-chip" id="heroChip">
+        <span class="hero-chip only-signed-in" id="heroChip">
           <span class="hero-chip__dot" aria-hidden="true"></span>
           <span id="heroChipLabel">—</span>
         </span>
+        <button class="icon-btn only-signed-in" id="signOutBtn"
+                aria-label="Sign out" title="Sign out">
+          <svg viewBox="0 0 24 24" width="18" height="18"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <path d="m16 17 5-5-5-5M21 12H9"/>
+          </svg>
+        </button>
+        <button class="auth-trigger only-signed-out" type="button"
+                id="authTrigger" data-auth-open>
+          <svg viewBox="0 0 24 24" width="14" height="14"
+               fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <path d="m10 17 5-5-5-5M15 12H3"/>
+          </svg>
+          Sign in
+        </button>
 
         <div class="palette-picker">
           <button class="icon-btn palette-picker__toggle" id="paletteToggle"
@@ -189,7 +264,7 @@
   <!-- ========= Main ========= -->
   <main id="main">
     <!-- Hero -->
-    <section class="hero" aria-labelledby="hero-title">
+    <section id="hero-section" class="hero" aria-labelledby="hero-title">
       <div class="hero__glow" aria-hidden="true"></div>
       <div class="hero__grid">
         <div class="hero__content">
@@ -221,12 +296,23 @@
             </div>
           </div>
 
-          <div class="hero__actions">
+          <div class="hero__actions only-signed-in">
             <button class="btn btn--primary" id="newQuestBtn">
               <svg width="16" height="16"><use href="#i-plus"/></svg>
               Start a new quest
             </button>
             <a href="#quests-section" class="btn btn--ghost">Browse quests</a>
+          </div>
+          <div class="hero__actions only-signed-out">
+            <button class="btn btn--primary" type="button"
+                    data-auth-open data-auth-tab="signup">
+              <svg width="16" height="16"><use href="#i-sparkle"/></svg>
+              Start your adventure
+            </button>
+            <button class="btn btn--ghost" type="button"
+                    data-auth-open data-auth-tab="signin">
+              I already have an account
+            </button>
           </div>
         </div>
 
@@ -245,8 +331,8 @@
       </div>
     </section>
 
-    <!-- Quests -->
-    <section id="quests-section" class="section" aria-labelledby="quests-title">
+    <!-- Quests (only when signed in) -->
+    <section id="quests-section" class="section only-signed-in" aria-labelledby="quests-title">
       <div class="section__header">
         <div>
           <h2 id="quests-title" class="section__title">Your quests</h2>
@@ -283,7 +369,96 @@
       </p>
     </section>
 
-    <!-- Hall of Fame -->
+    <!-- Chronicle (only when signed in) -->
+    <section id="chronicle-section" class="section only-signed-in" aria-labelledby="chronicle-title">
+      <div class="section__header">
+        <div>
+          <h2 id="chronicle-title" class="section__title">Chronicle of deeds</h2>
+          <p class="section__subtitle">
+            Your latest actions, newest first.
+          </p>
+        </div>
+        <button class="btn btn--ghost btn--sm" id="editProfileBtn">
+          <svg width="14" height="14"><use href="#i-edit"/></svg>
+          Edit hero
+        </button>
+      </div>
+      <div class="log-list" id="logList"></div>
+      <p class="empty" id="logEmpty" hidden>Nothing written on your scroll yet.</p>
+    </section>
+
+    <!-- How it works (only when signed out) -->
+    <section id="how-it-works" class="section only-signed-out" aria-labelledby="how-title">
+      <div class="section__header">
+        <div>
+          <h2 id="how-title" class="section__title">How Goal Quest works</h2>
+          <p class="section__subtitle">
+            Long-haul goals become a chronicle of small, playable wins.
+          </p>
+        </div>
+      </div>
+
+      <div class="how-grid">
+        <article class="how-card">
+          <span class="how-card__step">01</span>
+          <div class="how-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><use href="#i-sparkle"/></svg>
+          </div>
+          <h3 class="how-card__title">Design a quest</h3>
+          <p class="how-card__body">
+            Every goal becomes a 100-point quest. Break it into milestones —
+            20 points for a week of reading, 40 for the half-way mark — and
+            promise yourself a small reward at each one.
+          </p>
+        </article>
+
+        <article class="how-card">
+          <span class="how-card__step">02</span>
+          <div class="how-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><use href="#i-check"/></svg>
+          </div>
+          <h3 class="how-card__title">Log the work</h3>
+          <p class="how-card__body">
+            Record actions as you do them — pages read, kilometres run,
+            euros saved. The bar fills, the chest unlocks, your deeds are
+            etched into the chronicle for good.
+          </p>
+        </article>
+
+        <article class="how-card">
+          <span class="how-card__step">03</span>
+          <div class="how-card__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="22" height="22"><use href="#i-chest"/></svg>
+          </div>
+          <h3 class="how-card__title">Climb the ranks</h3>
+          <p class="how-card__body">
+            Every point you log is XP in the Hall of Fame. Measure
+            yourself against the realm's champions and keep the streak
+            alive.
+          </p>
+        </article>
+      </div>
+
+      <div class="how-cta">
+        <div class="how-cta__text">
+          <h3 class="how-cta__title">Ready to forge your first quest?</h3>
+          <p class="how-cta__body">
+            Create a free account — or sign in if your chronicle is already open.
+          </p>
+        </div>
+        <div class="how-cta__actions">
+          <button class="btn btn--primary" type="button"
+                  data-auth-open data-auth-tab="signup">
+            <svg width="16" height="16"><use href="#i-plus"/></svg>
+            Create account
+          </button>
+          <button class="btn btn--ghost" type="button"
+                  data-auth-open data-auth-tab="signin">Sign in</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hall of Fame (always visible — last section) -->
     <section id="hall-section" class="section" aria-labelledby="hall-title">
       <div class="section__header">
         <div>
@@ -299,24 +474,6 @@
         </div>
       </div>
       <ol class="hall-list" id="hallList"></ol>
-    </section>
-
-    <!-- Chronicle -->
-    <section id="chronicle-section" class="section" aria-labelledby="chronicle-title">
-      <div class="section__header">
-        <div>
-          <h2 id="chronicle-title" class="section__title">Chronicle of deeds</h2>
-          <p class="section__subtitle">
-            Your latest actions, newest first.
-          </p>
-        </div>
-        <button class="btn btn--ghost btn--sm" id="editProfileBtn">
-          <svg width="14" height="14"><use href="#i-edit"/></svg>
-          Edit hero
-        </button>
-      </div>
-      <div class="log-list" id="logList"></div>
-      <p class="empty" id="logEmpty" hidden>Nothing written on your scroll yet.</p>
     </section>
   </main>
 
@@ -338,8 +495,8 @@
         </div>
       </div>
       <div class="footer__meta">
-        <p>© <span id="year"></span> Goal Quest — open-source prototype.</p>
-        <p><span id="footerData">localStorage</span> · <a href="https://github.com/mramundo/goal-quest" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
+        <p>© <span id="year"></span> Goal Quest — open-source project.</p>
+        <p><a href="https://github.com/mramundo/goal-quest" target="_blank" rel="noopener noreferrer">Source on GitHub</a></p>
       </div>
     </div>
   </footer>

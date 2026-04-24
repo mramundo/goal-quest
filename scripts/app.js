@@ -29,11 +29,23 @@ const CONFIG = {
 
 const LOCALE = 'en-US';
 
-// Only theme prefs live in localStorage now — user data is in Supabase.
+// Only theme prefs + the client-side session live in localStorage now —
+// user data is in Supabase.
 const STORAGE = {
   palette: 'gq-palette',
   mode:    'gq-mode',
+  session: 'gq-client-session',
 };
+
+/* ---------- Demo user ----------
+   Until the Supabase-backed accounts are wired up, sign-in is a
+   client-side check against this single hard-coded identity. The
+   registration form is a capture-only stub — it never creates a row. */
+const DEMO_USER = Object.freeze({
+  email: 'demo@demo.com',
+  password: 'Password@1',
+  heroName: 'Aelar of the Western Reach',
+});
 
 const PALETTES = ['parchment', 'tavern', 'elven-forest', 'frozen-realm'];
 const MODES    = ['dark', 'light'];
@@ -253,14 +265,18 @@ function renderHeroRecap(store) {
   const quests = store.get('quests') ?? [];
   const log    = store.get('log') ?? [];
   const profile = store.get('profile') ?? {};
+  const session = store.get('session');
   const m = computeMetrics(quests, log);
 
   animateNumber($('#heroQuests'), m.activeQuests);
   animateNumber($('#heroXp'), m.totalXp);
   animateNumber($('#heroMilestones'), m.milestonesUnlocked);
 
+  // Chip only renders when signed in — hidden by CSS otherwise.
   const chipLabel = $('#heroChipLabel');
-  if (chipLabel) chipLabel.textContent = profile.name || 'Traveler';
+  if (chipLabel) {
+    chipLabel.textContent = session ? (profile.name || session.heroName || 'Hero') : '—';
+  }
 
   const greet = $('#heroGreeting');
   if (greet) {
@@ -269,10 +285,17 @@ function renderHeroRecap(store) {
                : hour < 12 ? 'Good morning'
                : hour < 18 ? 'The sun lights your road'
                : 'The torches are lit';
-    const name = profile.name ? `, ${profile.name}` : '';
-    greet.textContent = m.activeQuests > 0
-      ? `${base}${name} — ${m.activeQuests} ${m.activeQuests === 1 ? 'quest awaits' : 'quests await'}`
-      : `${base}${name} — your chronicle is ready`;
+    // Signed-out users get a generic honorific so the chip stays inviting
+    // without pretending to know who they are.
+    const name = session ? (profile.name || session.heroName || '') : 'adventurer';
+    const tail = name ? `, ${name}` : '';
+    if (!session) {
+      greet.textContent = `${base}${tail} — sign in to open your chronicle`;
+    } else if (m.activeQuests > 0) {
+      greet.textContent = `${base}${tail} — ${m.activeQuests} ${m.activeQuests === 1 ? 'quest awaits' : 'quests await'}`;
+    } else {
+      greet.textContent = `${base}${tail} — your chronicle is ready`;
+    }
   }
 }
 
@@ -280,8 +303,6 @@ function renderHeroRecap(store) {
 function setMeta() {
   const y = $('#year');
   if (y) y.textContent = new Date().getFullYear();
-  const fd = $('#footerData');
-  if (fd) fd.textContent = 'Supabase';
 }
 
 /* ---------- Store mutations ----------
@@ -351,53 +372,193 @@ export function exportEverything(store) {
   };
 }
 
-/* ---------- Onboarding (login) ---------- */
-function hideOnboarding(section) {
-  if (!section) return;
-  section.hidden = true;
-  section.style.display = 'none';
+/* ---------- Client session ---------- */
+function getClientSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE.session);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed.email === 'string' ? parsed : null;
+  } catch { return null; }
 }
-function showOnboarding(section) {
-  if (!section) return;
-  section.hidden = false;
-  section.style.removeProperty('display');
+function setClientSession(session) {
+  if (session) localStorage.setItem(STORAGE.session, JSON.stringify(session));
+  else localStorage.removeItem(STORAGE.session);
 }
 
-function initOnboarding(store) {
-  const section = $('#onboarding');
-  const form = $('#loginForm');
-  const input = $('#heroNameInput');
-  if (!section || !form || !input) return;
+function applyAuthState(store) {
+  const session = store.get('session');
+  document.documentElement.dataset.auth = session ? 'signed-in' : 'signed-out';
+}
 
-  const profile = store.get('profile') ?? {};
-  if (profile.name) {
-    hideOnboarding(section);
-    return;
+/* ---------- Auth dialog (sign in / sign up) ---------- */
+function openAuthDialog(tab = 'signin') {
+  const dlg = $('#authDialog');
+  if (!dlg) return;
+  dlg.hidden = false;
+  switchAuthTab(tab);
+  // Clear prior errors + focus the first input for fast typing
+  $$('#authDialog [data-auth-error]').forEach(el => { el.hidden = true; el.textContent = ''; });
+  requestAnimationFrame(() => {
+    const panel = dlg.querySelector(`[data-auth-panel="${tab}"]`);
+    panel?.querySelector('input')?.focus();
+  });
+}
+function closeAuthDialog() {
+  const dlg = $('#authDialog');
+  if (!dlg) return;
+  dlg.hidden = true;
+}
+function switchAuthTab(tab) {
+  const dlg = $('#authDialog');
+  if (!dlg) return;
+  dlg.querySelectorAll('[data-auth-tab]').forEach(btn => {
+    const active = btn.dataset.authTab === tab;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', String(active));
+  });
+  dlg.querySelectorAll('[data-auth-panel]').forEach(panel => {
+    panel.hidden = panel.dataset.authPanel !== tab;
+  });
+}
+
+async function signInWithDemo(store, { email, password }) {
+  if (email !== DEMO_USER.email || password !== DEMO_USER.password) {
+    return { ok: false, error: "That email and password don't match any chronicle yet. Try the demo credentials below." };
   }
 
-  showOnboarding(section);
-  requestAnimationFrame(() => input.focus());
+  // Bring up the Supabase anon session on demand so the leaderboard +
+  // future real accounts share the same pipe.
+  let session;
+  try {
+    session = await ensureSession();
+    currentUid = session.user.id;
+  } catch (err) {
+    return { ok: false, error: err?.message ?? "Can't reach the realm right now. Try again in a moment." };
+  }
 
-  form.addEventListener('submit', async (e) => {
+  // Hydrate the store from Supabase, then force the demo hero name so
+  // the UI always greets the user as 'Aelar of the Western Reach'.
+  try {
+    const userData = await loadAll(currentUid);
+    store.patch({
+      quests: userData.quests,
+      log: userData.log,
+      profile: { ...(userData.profile ?? {}), name: DEMO_USER.heroName },
+    });
+    await seedIfEmpty(store);
+  } catch (err) {
+    console.warn('[auth] hydrate failed:', err);
+  }
+
+  // Persist profile name server-side so refresh keeps it.
+  updateProfile(store, { name: DEMO_USER.heroName });
+
+  setClientSession({ email: DEMO_USER.email, heroName: DEMO_USER.heroName });
+  store.set('session', { email: DEMO_USER.email, heroName: DEMO_USER.heroName });
+  applyAuthState(store);
+
+  return { ok: true };
+}
+
+function signOut(store) {
+  setClientSession(null);
+  store.patch({ quests: [], log: [], profile: {}, session: null });
+  applyAuthState(store);
+  flashToast({
+    kind: 'success',
+    title: 'Signed out',
+    desc: 'Your chronicle is safely stored. Sign back in any time.',
+  });
+}
+
+function initAuthDialog(store) {
+  const dlg = $('#authDialog');
+  if (!dlg) return;
+
+  // Openers scattered across the page (hero CTA, topbar pill, empty state…)
+  document.addEventListener('click', (e) => {
+    const opener = e.target.closest('[data-auth-open]');
+    if (opener) {
+      e.preventDefault();
+      const tab = opener.dataset.authTab || 'signin';
+      openAuthDialog(tab);
+      return;
+    }
+    if (e.target.closest('[data-auth-close]')) {
+      e.preventDefault();
+      closeAuthDialog();
+    }
+  });
+
+  // Tab switch
+  dlg.querySelectorAll('[data-auth-tab]').forEach(btn => {
+    btn.addEventListener('click', () => switchAuthTab(btn.dataset.authTab));
+  });
+
+  // Escape to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !dlg.hidden) closeAuthDialog();
+  });
+
+  // Sign-in submit
+  const signinForm = dlg.querySelector('[data-auth-panel="signin"]');
+  signinForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = input.value.trim().slice(0, 32);
-    if (!name) { input.focus(); return; }
+    const email = signinForm.elements.email.value.trim();
+    const password = signinForm.elements.password.value;
+    const err = signinForm.querySelector('[data-auth-error]');
+    if (err) { err.hidden = true; err.textContent = ''; }
 
-    // Hide overlay immediately for a responsive feel; the DB write
-    // happens in the background and surfaces its own error toast.
-    hideOnboarding(section);
-    updateProfile(store, { name, title: 'Traveler' });
+    const submitBtn = signinForm.querySelector('button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
 
+    const result = await signInWithDemo(store, { email, password });
+
+    if (submitBtn) submitBtn.disabled = false;
+
+    if (!result.ok) {
+      if (err) { err.hidden = false; err.textContent = result.error; }
+      return;
+    }
+    signinForm.reset();
+    closeAuthDialog();
     flashToast({
       kind: 'success',
-      title: `Welcome, ${name}`,
-      desc: 'Your chronicle is open. Forge your first quest to begin.',
+      title: `Welcome back, ${DEMO_USER.heroName}`,
+      desc: 'Your chronicle is open. Forge a new quest, or pick up where you left off.',
     });
   });
+
+  // Sign-up submit (stub — no real account yet)
+  const signupForm = dlg.querySelector('[data-auth-panel="signup"]');
+  signupForm?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const err = signupForm.querySelector('[data-auth-error]');
+    if (err) { err.hidden = true; err.textContent = ''; }
+    const heroName = signupForm.elements.heroName.value.trim().slice(0, 32);
+    const email = signupForm.elements.email.value.trim();
+    if (!email || !heroName) {
+      if (err) { err.hidden = false; err.textContent = 'Fill in every field to forge your chronicle.'; }
+      return;
+    }
+    flashToast({
+      kind: 'success',
+      title: 'Thanks for signing up!',
+      desc: 'Account creation goes live once the backend is wired up. For now, sign in with the demo credentials.',
+    });
+    signupForm.reset();
+    switchAuthTab('signin');
+  });
+}
+
+function initSignOut(store) {
+  $('#signOutBtn')?.addEventListener('click', () => signOut(store));
 }
 
 function initEditHero(store) {
   $('#editProfileBtn')?.addEventListener('click', () => {
+    if (!store.get('session')) return;
     const profile = store.get('profile') ?? {};
     const current = profile.name || '';
     const next = prompt('What name shall history remember?', current);
@@ -424,16 +585,11 @@ async function seedIfEmpty(store) {
 
 /* ---------- Fatal boot error helper ---------- */
 function showBootError(message) {
-  const onboarding = $('#onboarding');
-  if (!onboarding) return;
-  onboarding.hidden = false;
-  onboarding.style.removeProperty('display');
-  onboarding.innerHTML = `
-    <div class="onboarding__card">
-      <h1 class="onboarding__title">Can't reach the realm</h1>
-      <p class="onboarding__lead" style="color: var(--danger);">${escapeHtml(message)}</p>
-      <p class="onboarding__hint">Refresh after checking your connection.</p>
-    </div>`;
+  flashToast({
+    kind: 'error',
+    title: "Can't reach the realm",
+    desc: message || 'Authentication error. Refresh after checking your connection.',
+  });
 }
 
 /* ---------- Dragon engraving (Opzione A) ----------
@@ -557,40 +713,48 @@ function buildEngravingSvg(dataUrl, W, H) {
     profile: {},
     heroes: [],
     actionsLib: {},
+    session: null,
   });
 
   // Expose for debugging
   window.__gq = { store, exportEverything };
 
-  // 1. Get (or create) an anonymous Supabase session — RLS binds rows to auth.uid().
-  let session;
-  try {
-    session = await ensureSession();
-    currentUid = session.user.id;
-  } catch (err) {
-    console.error('[boot] auth failed:', err);
-    showBootError(err.message ?? 'Authentication error');
-    return;
-  }
-
-  // 2. Load seeds + user data in parallel.
-  const [heroes, actionsLib, userData] = await Promise.all([
+  // 1. Static seeds always load — the Hall of Fame is visible even to
+  //    signed-out visitors, so we need heroes regardless.
+  const [heroes, actionsLib] = await Promise.all([
     fetchJSON(CONFIG.seedHeroes),
     fetchJSON(CONFIG.actionsLib),
-    loadAll(currentUid),
   ]);
   store.set('heroes', Array.isArray(heroes?.items) ? heroes.items : []);
   store.set('actionsLib', actionsLib ?? {});
-  store.patch({
-    quests: userData.quests,
-    log: userData.log,
-    profile: userData.profile,
-  });
 
-  // 3. First-time user with no quests → drop in seed examples.
-  await seedIfEmpty(store);
+  // 2. Rehydrate a previous client session if one exists. Only then do
+  //    we open the Supabase anonymous session + load the user's data —
+  //    landing visitors never hit the DB.
+  const existingSession = getClientSession();
+  if (existingSession) {
+    try {
+      const session = await ensureSession();
+      currentUid = session.user.id;
+      const userData = await loadAll(currentUid);
+      store.patch({
+        quests: userData.quests,
+        log: userData.log,
+        profile: { ...(userData.profile ?? {}), name: existingSession.heroName || userData.profile?.name },
+        session: existingSession,
+      });
+      await seedIfEmpty(store);
+    } catch (err) {
+      console.error('[boot] resume failed:', err);
+      setClientSession(null);
+      showBootError(err?.message ?? 'Could not resume your chronicle.');
+    }
+  }
 
-  initOnboarding(store);
+  applyAuthState(store);
+
+  initAuthDialog(store);
+  initSignOut(store);
   initEditHero(store);
   initQuests({ store });
   initProgress({ store });
@@ -598,7 +762,8 @@ function buildEngravingSvg(dataUrl, W, H) {
 
   // Reactive rerender pipeline
   store.subscribe((key) => {
-    if (key === 'quests' || key === 'log' || key === 'profile' || key === null) {
+    if (key === 'session' || key === null) applyAuthState(store);
+    if (key === 'quests' || key === 'log' || key === 'profile' || key === 'session' || key === null) {
       renderHeroRecap(store);
       refreshQuests();
       refreshHall();
@@ -608,8 +773,12 @@ function buildEngravingSvg(dataUrl, W, H) {
 
   renderHeroRecap(store);
 
-  // New quest CTAs
-  const openNew = () => openQuestComposer({ store, mode: 'create' });
+  // New quest CTAs (only meaningful when signed in — CSS hides the
+  // triggers otherwise, these guards just keep the callers honest).
+  const openNew = () => {
+    if (!store.get('session')) { openAuthDialog('signin'); return; }
+    openQuestComposer({ store, mode: 'create' });
+  };
   $('#newQuestBtn')?.addEventListener('click', openNew);
   $('#newQuestBtnInline')?.addEventListener('click', openNew);
 
