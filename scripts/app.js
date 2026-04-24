@@ -38,16 +38,22 @@ const MODES    = ['dark', 'light'];
 function createStore(initial = {}) {
   const listeners = new Set();
   const state = { ...initial };
+  const notify = (key, val) => {
+    listeners.forEach(fn => {
+      try { fn(key, val, state); }
+      catch (err) { console.error('[store] listener error:', err); }
+    });
+  };
   return {
     get: (key) => state[key],
     getAll: () => ({ ...state }),
     set(key, val) {
       state[key] = val;
-      listeners.forEach(fn => fn(key, val, state));
+      notify(key, val);
     },
     patch(partial) {
       Object.assign(state, partial);
-      listeners.forEach(fn => fn(null, null, state));
+      notify(null, null);
     },
     subscribe(fn) {
       listeners.add(fn);
@@ -149,8 +155,12 @@ function loadLocal(key, fallback) {
   } catch { return fallback; }
 }
 function saveLocal(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); }
-  catch (err) { console.warn(`[storage] save failed for ${key}:`, err); }
+  try {
+    localStorage.setItem(key, JSON.stringify(val));
+  } catch (err) {
+    console.warn(`[storage] save failed for ${key}:`, err);
+    throw err; // let callers surface the failure to the user
+  }
 }
 
 /* ---------- Formatting utils ---------- */
@@ -314,35 +324,37 @@ async function seedIfEmpty(store) {
   }
 }
 
-/* ---------- Store mutations ---------- */
+/* ---------- Store mutations ----------
+   IMPORTANT: write to localStorage FIRST, then fire subscribers.
+   If a subscriber throws the persistence must already be done. */
 export function addQuest(store, quest) {
   const list = [quest, ...(store.get('quests') ?? [])];
-  store.set('quests', list);
   saveLocal(STORAGE.quests, list);
+  store.set('quests', list);
 }
 export function updateQuest(store, id, patch) {
   const list = (store.get('quests') ?? []).map(q => q.id === id ? { ...q, ...patch } : q);
-  store.set('quests', list);
   saveLocal(STORAGE.quests, list);
+  store.set('quests', list);
 }
 export function removeQuest(store, id) {
   const list = (store.get('quests') ?? []).filter(q => q.id !== id);
-  store.set('quests', list);
   saveLocal(STORAGE.quests, list);
+  store.set('quests', list);
 
   const log = (store.get('log') ?? []).filter(l => l.questId !== id);
-  store.set('log', log);
   saveLocal(STORAGE.log, log);
+  store.set('log', log);
 }
 export function appendLog(store, entry) {
   const list = [entry, ...(store.get('log') ?? [])];
-  store.set('log', list);
   saveLocal(STORAGE.log, list);
+  store.set('log', list);
 }
 export function updateProfile(store, patch) {
   const profile = { ...(store.get('profile') ?? {}), ...patch };
-  store.set('profile', profile);
   saveLocal(STORAGE.profile, profile);
+  store.set('profile', profile);
 }
 
 export function exportEverything(store) {
@@ -356,6 +368,18 @@ export function exportEverything(store) {
 }
 
 /* ---------- Onboarding (login) ---------- */
+function hideOnboarding(section) {
+  if (!section) return;
+  section.hidden = true;
+  // Defensive: even if another stylesheet overrides [hidden], force display:none.
+  section.style.display = 'none';
+}
+function showOnboarding(section) {
+  if (!section) return;
+  section.hidden = false;
+  section.style.removeProperty('display');
+}
+
 function initOnboarding(store) {
   const section = $('#onboarding');
   const form = $('#loginForm');
@@ -364,19 +388,34 @@ function initOnboarding(store) {
 
   const profile = store.get('profile') ?? {};
   if (profile.name) {
-    section.hidden = true;
+    hideOnboarding(section);
     return;
   }
 
-  section.hidden = false;
+  showOnboarding(section);
   requestAnimationFrame(() => input.focus());
 
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     const name = input.value.trim().slice(0, 32);
     if (!name) { input.focus(); return; }
-    updateProfile(store, { name, title: 'Traveler' });
-    section.hidden = true;
+
+    // Hide overlay FIRST so the user sees progress even if a
+    // downstream subscriber throws.
+    hideOnboarding(section);
+
+    try {
+      updateProfile(store, { name, title: 'Traveler' });
+    } catch (err) {
+      console.error('[onboarding] profile save failed:', err);
+      flashToast({
+        kind: 'error',
+        title: 'Could not save your name',
+        desc: 'Check that site storage is enabled in your browser.',
+      });
+      return;
+    }
+
     flashToast({
       kind: 'success',
       title: `Welcome, ${name}`,
