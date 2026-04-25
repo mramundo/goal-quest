@@ -20,25 +20,50 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   },
 });
 
-/* ---------- Auth ---------- */
-/**
- * Returns a guaranteed session. If no session exists (first visit)
- * we fall back to anonymous sign-in — the anonymous user gets a
- * stable auth.uid() that RLS will bind all rows to.
- */
-export async function ensureSession() {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session) return session;
+/* ---------- Auth ----------
+   Real email/password accounts on Supabase. The session lives in
+   localStorage under `gq-auth` (managed by supabase-js), so a
+   refresh keeps the user signed in until they hit Sign out. */
 
-  const { data, error } = await supabase.auth.signInAnonymously();
-  if (error) {
-    // Most common case: the dashboard toggle for anonymous sign-ins is off.
-    const hint = /anonymous.*disabled|not.*enabled/i.test(error.message ?? '')
-      ? 'Enable "Anonymous sign-ins" in Supabase → Authentication → Providers.'
-      : error.message;
-    throw new Error(`Could not start a session. ${hint}`);
-  }
-  return data.session;
+/** Current session if one exists, otherwise null — never creates one. */
+export async function getSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session ?? null;
+}
+
+/** Subscribe to auth events (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED…). */
+export function onAuthStateChange(handler) {
+  return supabase.auth.onAuthStateChange((event, session) => handler(event, session));
+}
+
+/**
+ * Sign up a brand new user. The `heroName` is stashed in
+ * `raw_user_meta_data.hero_name` so the `handle_new_user` trigger
+ * in the DB can populate `public.profiles.name` automatically.
+ *
+ * NOTE: with the default Supabase config, signUp returns a session
+ * directly when "Confirm email" is OFF, otherwise the user has to
+ * click the confirmation email first.
+ */
+export async function signUpEmailPassword({ email, password, heroName }) {
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: { data: { hero_name: heroName } },
+  });
+  if (error) throw error;
+  return { user: data.user, session: data.session };
+}
+
+export async function signInEmailPassword({ email, password }) {
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+  return { user: data.user, session: data.session };
+}
+
+export async function signOut() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
 
 export function currentUserId() {

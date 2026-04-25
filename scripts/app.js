@@ -11,7 +11,9 @@ import { initQuests, openQuestComposer, refreshQuests, closeComposer } from './q
 import { initProgress, refreshChronicle, flashToast } from './progress.js';
 import { initHall, refreshHall } from './hall.js';
 import {
-  ensureSession, loadAll, upsertProfile,
+  getSession, onAuthStateChange,
+  signUpEmailPassword, signInEmailPassword, signOut as supabaseSignOut,
+  loadAll, upsertProfile,
   insertQuest, patchQuest, deleteQuest,
   insertLog, seedInitialQuests,
 } from './db.js';
@@ -29,23 +31,12 @@ const CONFIG = {
 
 const LOCALE = 'en-US';
 
-// Only theme prefs + the client-side session live in localStorage now —
-// user data is in Supabase.
+// Theme prefs only — user data + auth session live in Supabase.
+// (supabase-js stores its own session under `gq-auth` in localStorage.)
 const STORAGE = {
   palette: 'gq-palette',
   mode:    'gq-mode',
-  session: 'gq-client-session',
 };
-
-/* ---------- Demo user ----------
-   Until the Supabase-backed accounts are wired up, sign-in is a
-   client-side check against this single hard-coded identity. The
-   registration form is a capture-only stub — it never creates a row. */
-const DEMO_USER = Object.freeze({
-  email: 'demo@demo.com',
-  password: 'Password@1',
-  heroName: 'Aelar of the Western Reach',
-});
 
 const PALETTES = ['parchment', 'tavern', 'elven-forest', 'frozen-realm'];
 const MODES    = ['dark', 'light'];
@@ -336,7 +327,8 @@ function setMeta() {
    then fire the DB write. On failure we surface a toast and log the
    error — the user can refresh to re-hydrate from the source of truth. */
 
-// Module-scoped user id — set at boot once ensureSession resolves.
+// Module-scoped user id — set whenever a Supabase session lands
+// (boot, sign-in, auth-state-change) and cleared on sign-out.
 let currentUid = null;
 
 function surfaceDbError(prefix, err) {
@@ -398,23 +390,35 @@ export function exportEverything(store) {
   };
 }
 
-/* ---------- Client session ---------- */
-function getClientSession() {
-  try {
-    const raw = localStorage.getItem(STORAGE.session);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed && typeof parsed.email === 'string' ? parsed : null;
-  } catch { return null; }
-}
-function setClientSession(session) {
-  if (session) localStorage.setItem(STORAGE.session, JSON.stringify(session));
-  else localStorage.removeItem(STORAGE.session);
+/* ---------- Auth state ----------
+   The store's `session` key mirrors the Supabase session; we shape
+   it down to `{ email, heroName, userId }` so the rest of the UI
+   doesn't need to know about Supabase internals. */
+
+function shapeSession(supaSession, heroName) {
+  if (!supaSession?.user) return null;
+  return {
+    userId: supaSession.user.id,
+    email: supaSession.user.email,
+    heroName: heroName || supaSession.user.user_metadata?.hero_name || null,
+  };
 }
 
 function applyAuthState(store) {
   const session = store.get('session');
   document.documentElement.dataset.auth = session ? 'signed-in' : 'signed-out';
+}
+
+/** Hydrate the store from Supabase for a given userId, then start a
+ *  first-time seed if the user has zero quests. */
+async function hydrateForUser(store, userId) {
+  const userData = await loadAll(userId);
+  store.patch({
+    quests: userData.quests,
+    log: userData.log,
+    profile: userData.profile ?? {},
+  });
+  await seedIfEmpty(store);
 }
 
 /* ---------- Password rules + show/hide toggle ---------- */
@@ -494,47 +498,79 @@ function switchAuthTab(tab) {
   });
 }
 
-async function signInWithDemo(store, { email, password }) {
-  if (email !== DEMO_USER.email || password !== DEMO_USER.password) {
-    return { ok: false, error: "That email and password don't match any chronicle yet. Try the demo credentials below." };
-  }
+/** Friendlier copy for the most common Supabase auth error strings. */
+function authErrorMessage(err) {
+  const raw = (err?.message || '').toLowerCase();
+  if (raw.includes('invalid login')) return "That email and password don't match any chronicle yet.";
+  if (raw.includes('email not confirmed')) return 'Confirm your email first — check your inbox for the link.';
+  if (raw.includes('user already registered')) return 'An account already exists for that email. Try signing in instead.';
+  if (raw.includes('rate limit')) return 'Too many tries. Wait a moment, then try again.';
+  return err?.message || "Can't reach the realm right now. Try again in a moment.";
+}
 
-  // Bring up the Supabase anon session on demand so the leaderboard +
-  // future real accounts share the same pipe.
-  let session;
+async function signInWithEmailPassword(store, { email, password }) {
+  let user, session;
   try {
-    session = await ensureSession();
-    currentUid = session.user.id;
+    ({ user, session } = await signInEmailPassword({ email, password }));
   } catch (err) {
-    return { ok: false, error: err?.message ?? "Can't reach the realm right now. Try again in a moment." };
+    return { ok: false, error: authErrorMessage(err) };
+  }
+  if (!user || !session) {
+    return { ok: false, error: 'Sign-in did not return a session. Try again.' };
   }
 
-  // Hydrate the store from Supabase, then force the demo hero name so
-  // the UI always greets the user as 'Aelar of the Western Reach'.
+  currentUid = user.id;
   try {
-    const userData = await loadAll(currentUid);
-    store.patch({
-      quests: userData.quests,
-      log: userData.log,
-      profile: { ...(userData.profile ?? {}), name: DEMO_USER.heroName },
-    });
-    await seedIfEmpty(store);
+    await hydrateForUser(store, currentUid);
   } catch (err) {
     console.warn('[auth] hydrate failed:', err);
   }
-
-  // Persist profile name server-side so refresh keeps it.
-  updateProfile(store, { name: DEMO_USER.heroName });
-
-  setClientSession({ email: DEMO_USER.email, heroName: DEMO_USER.heroName });
-  store.set('session', { email: DEMO_USER.email, heroName: DEMO_USER.heroName });
+  const profile = store.get('profile') ?? {};
+  store.set('session', shapeSession(session, profile.name));
   applyAuthState(store);
 
-  return { ok: true };
+  return { ok: true, heroName: profile.name || user.user_metadata?.hero_name || 'Hero' };
 }
 
-function signOut(store) {
-  setClientSession(null);
+async function signUpWithEmailPassword(store, { email, password, heroName }) {
+  let user, session;
+  try {
+    ({ user, session } = await signUpEmailPassword({ email, password, heroName }));
+  } catch (err) {
+    return { ok: false, error: authErrorMessage(err) };
+  }
+
+  // Email-confirmation flow → no session yet, user must click the link.
+  if (!session) {
+    return { ok: true, needsConfirm: true, heroName };
+  }
+
+  currentUid = user.id;
+  // The DB trigger seeds profiles.name from raw_user_meta_data.hero_name,
+  // but it can race the first read on slow connections — patch defensively.
+  try {
+    await hydrateForUser(store, currentUid);
+    const profile = store.get('profile') ?? {};
+    if (!profile.name && heroName) {
+      updateProfile(store, { name: heroName });
+    }
+  } catch (err) {
+    console.warn('[auth] hydrate failed:', err);
+  }
+  const profile = store.get('profile') ?? {};
+  store.set('session', shapeSession(session, profile.name || heroName));
+  applyAuthState(store);
+
+  return { ok: true, needsConfirm: false, heroName: profile.name || heroName };
+}
+
+async function signOut(store) {
+  try {
+    await supabaseSignOut();
+  } catch (err) {
+    console.warn('[auth] sign-out failed:', err);
+  }
+  currentUid = null;
   store.patch({ quests: [], log: [], profile: {}, session: null });
   applyAuthState(store);
   flashToast({
@@ -589,7 +625,7 @@ function initAuthDialog(store) {
     const submitBtn = signinForm.querySelector('button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
 
-    const result = await signInWithDemo(store, { email, password });
+    const result = await signInWithEmailPassword(store, { email, password });
 
     if (submitBtn) submitBtn.disabled = false;
 
@@ -601,13 +637,14 @@ function initAuthDialog(store) {
     closeAuthDialog();
     flashToast({
       kind: 'success',
-      title: `Welcome back, ${DEMO_USER.heroName}`,
+      title: `Welcome back, ${result.heroName}`,
       desc: 'Your chronicle is open. Forge a new quest, or pick up where you left off.',
     });
   });
 
-  // Sign-up submit (stub — no real account yet). Validation still runs
-  // so the UX mirrors the real thing: strong password + confirm match.
+  // Sign-up submit — creates a real Supabase user. The DB trigger
+  // `on_auth_user_created` seeds the profiles row from
+  // raw_user_meta_data.hero_name; we just need to mirror it client-side.
   const signupForm = dlg.querySelector('[data-auth-panel="signup"]');
   if (signupForm) {
     const reqsList = signupForm.querySelector('[data-pw-reqs]');
@@ -618,7 +655,7 @@ function initAuthDialog(store) {
     });
     renderPasswordReqs(reqsList, pwInput?.value || '');
 
-    signupForm.addEventListener('submit', (e) => {
+    signupForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const err = signupForm.querySelector('[data-auth-error]');
       if (err) { err.hidden = true; err.textContent = ''; }
@@ -647,14 +684,40 @@ function initAuthDialog(store) {
         return;
       }
 
-      flashToast({
-        kind: 'success',
-        title: 'Thanks for signing up!',
-        desc: 'Account creation goes live once the backend is wired up. For now, sign in with the demo credentials.',
-      });
+      const submitBtn = signupForm.querySelector('button[type="submit"]');
+      if (submitBtn) submitBtn.disabled = true;
+
+      const result = await signUpWithEmailPassword(store, { email, password, heroName });
+
+      if (submitBtn) submitBtn.disabled = false;
+
+      if (!result.ok) {
+        showErr(result.error);
+        return;
+      }
+
       signupForm.reset();
       renderPasswordReqs(reqsList, '');
-      switchAuthTab('signin');
+
+      if (result.needsConfirm) {
+        // Project has email-confirmation enabled — push them to signin
+        // and tell them to check their inbox.
+        switchAuthTab('signin');
+        flashToast({
+          kind: 'info',
+          title: 'Almost there',
+          desc: `We sent a confirmation link to ${email}. Click it, then sign in.`,
+        });
+        return;
+      }
+
+      // Auto-confirm enabled → already signed in. Close dialog + welcome.
+      closeAuthDialog();
+      flashToast({
+        kind: 'success',
+        title: `Welcome, ${result.heroName}`,
+        desc: 'Your chronicle is forged. Forge your first quest to begin.',
+      });
     });
   }
 }
@@ -835,27 +898,20 @@ function buildEngravingSvg(dataUrl, W, H) {
   store.set('heroes', Array.isArray(heroes?.items) ? heroes.items : []);
   store.set('actionsLib', actionsLib ?? {});
 
-  // 2. Rehydrate a previous client session if one exists. Only then do
-  //    we open the Supabase anonymous session + load the user's data —
-  //    landing visitors never hit the DB.
-  const existingSession = getClientSession();
-  if (existingSession) {
-    try {
-      const session = await ensureSession();
-      currentUid = session.user.id;
-      const userData = await loadAll(currentUid);
-      store.patch({
-        quests: userData.quests,
-        log: userData.log,
-        profile: { ...(userData.profile ?? {}), name: existingSession.heroName || userData.profile?.name },
-        session: existingSession,
-      });
-      await seedIfEmpty(store);
-    } catch (err) {
-      console.error('[boot] resume failed:', err);
-      setClientSession(null);
-      showBootError(err?.message ?? 'Could not resume your chronicle.');
+  // 2. Rehydrate from the Supabase session if one is already in
+  //    localStorage (managed by supabase-js under `gq-auth`). Visitors
+  //    without a session never hit the DB.
+  try {
+    const supaSession = await getSession();
+    if (supaSession?.user) {
+      currentUid = supaSession.user.id;
+      await hydrateForUser(store, currentUid);
+      const profile = store.get('profile') ?? {};
+      store.set('session', shapeSession(supaSession, profile.name));
     }
+  } catch (err) {
+    console.error('[boot] resume failed:', err);
+    showBootError(err?.message ?? 'Could not resume your chronicle.');
   }
 
   applyAuthState(store);
@@ -875,6 +931,31 @@ function buildEngravingSvg(dataUrl, W, H) {
       refreshQuests();
       refreshHall();
       refreshChronicle();
+    }
+  });
+
+  // Cross-tab + token-refresh sync. When Supabase emits SIGNED_IN /
+  // SIGNED_OUT we mirror the state into the store so every open tab
+  // stays consistent, and we re-hydrate the user's data on a fresh
+  // sign-in (e.g. after an email-confirmation redirect).
+  onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT' || !session?.user) {
+      currentUid = null;
+      store.patch({ quests: [], log: [], profile: {}, session: null });
+      applyAuthState(store);
+      return;
+    }
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+      const nextUid = session.user.id;
+      // Avoid clobbering the store on every token refresh — only re-hydrate
+      // when the user actually changed (or we never loaded them).
+      if (nextUid !== currentUid) {
+        currentUid = nextUid;
+        try { await hydrateForUser(store, currentUid); }
+        catch (err) { console.warn('[auth] state-change hydrate failed:', err); }
+      }
+      const profile = store.get('profile') ?? {};
+      store.set('session', shapeSession(session, profile.name));
     }
   });
 
