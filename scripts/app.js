@@ -289,6 +289,16 @@ function renderHeroRecap(store) {
   animateNumber($('#heroXp'), display.totalXp);
   animateNumber($('#heroMilestones'), display.chests);
 
+  // Stat-card labels — swap copy when signed-out so the realm-wide
+  // numbers don't read as "your" stats. Signed-in copy is the personal
+  // version that ships in the static HTML.
+  const labels = session
+    ? { quests: 'Active quests', xp: 'Total XP', chests: 'Chests opened' }
+    : { quests: 'Quests in the realm', xp: 'XP earned by heroes', chests: 'Chests opened in the realm' };
+  const qLab = $('#heroQuestsLabel');     if (qLab) qLab.textContent = labels.quests;
+  const xLab = $('#heroXpLabel');         if (xLab) xLab.textContent = labels.xp;
+  const cLab = $('#heroMilestonesLabel'); if (cLab) cLab.textContent = labels.chests;
+
   // Chip only renders when signed in — hidden by CSS otherwise.
   const chipLabel = $('#heroChipLabel');
   if (chipLabel) {

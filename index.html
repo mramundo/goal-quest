@@ -74,9 +74,6 @@
           <svg width="16" height="16"><use href="#i-sparkle"/></svg>
           Enter the realm
         </button>
-        <p class="auth-form__hint">
-          Demo credentials: <code>demo@demo.com</code> / <code>Password@1</code>
-        </p>
       </form>
 
       <form class="auth-form" data-auth-panel="signup" hidden novalidate>
@@ -158,7 +155,7 @@
   <!-- ========= Topbar ========= -->
   <header class="topbar" role="banner">
     <div class="topbar__inner">
-      <a class="brand" href="#hero-section">
+      <a class="brand" href="#main">
         <span class="brand__mark" aria-hidden="true">
           <svg viewBox="0 0 64 64" width="22" height="22"><use href="#crest-sparkle"/></svg>
         </span>
@@ -172,7 +169,7 @@
           <a href="#hall-section"      class="nav__link">Hall of Fame</a>
         </span>
         <span class="nav__group only-signed-out">
-          <a href="#hero-section"   class="nav__link">Overview</a>
+          <a href="#main"           class="nav__link">Overview</a>
           <a href="#how-it-works"   class="nav__link">How it works</a>
           <a href="#hall-section"   class="nav__link">Hall of Fame</a>
         </span>
@@ -359,15 +356,15 @@
           <div class="hero__stats">
             <div class="stat-card">
               <div class="stat-card__value" id="heroQuests">—</div>
-              <div class="stat-card__label">Active quests</div>
+              <div class="stat-card__label" id="heroQuestsLabel">Active quests</div>
             </div>
             <div class="stat-card">
               <div class="stat-card__value" id="heroXp">—</div>
-              <div class="stat-card__label">Total XP</div>
+              <div class="stat-card__label" id="heroXpLabel">Total XP</div>
             </div>
             <div class="stat-card">
               <div class="stat-card__value" id="heroMilestones">—</div>
-              <div class="stat-card__label">Chests opened</div>
+              <div class="stat-card__label" id="heroMilestonesLabel">Chests opened</div>
             </div>
           </div>
 
