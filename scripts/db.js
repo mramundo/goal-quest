@@ -191,6 +191,38 @@ export async function insertLog(userId, entry) {
   return logFromRow(data);
 }
 
+/* ---------- Public aggregates (anon-readable) ----------
+   These call the SECURITY DEFINER functions in the DB so signed-out
+   visitors can see realm-wide stats + the leaderboard without leaking
+   per-row data. */
+
+export async function fetchHallOfFame(limit = 25) {
+  const { data, error } = await supabase.rpc('hall_of_fame', { limit_count: limit });
+  if (error) { console.warn('[db] hall_of_fame:', error.message); return []; }
+  return (data ?? []).map(r => ({
+    id: r.user_id,
+    userId: r.user_id,
+    name: r.name,
+    title: r.title,
+    xp: Number(r.xp) || 0,
+    activeQuests: Number(r.active_quests) || 0,
+    chestsOpened: Number(r.chests_opened) || 0,
+  }));
+}
+
+export async function fetchRealmStats() {
+  const { data, error } = await supabase.rpc('realm_stats');
+  if (error) { console.warn('[db] realm_stats:', error.message); return null; }
+  const row = Array.isArray(data) ? data[0] : data;
+  if (!row) return null;
+  return {
+    heroes: Number(row.heroes) || 0,
+    activeQuests: Number(row.active_quests) || 0,
+    totalXp: Number(row.total_xp) || 0,
+    chestsOpened: Number(row.chests_opened) || 0,
+  };
+}
+
 /* ---------- Initial seed (first-time user) ----------
    Loads the public seed file and creates matching DB rows so
    the user has examples to tinker with. Called only when the

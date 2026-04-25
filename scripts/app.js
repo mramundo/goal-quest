@@ -7,16 +7,17 @@
    and the auth session (handled by the supabase-js client).
    ========================================================= */
 
-import { initQuests, openQuestComposer, refreshQuests, closeComposer } from './quests.js';
-import { initProgress, refreshChronicle, flashToast } from './progress.js';
-import { initHall, refreshHall } from './hall.js';
+import { initQuests, openQuestComposer, refreshQuests, closeComposer } from './quests.js?v=20260425a';
+import { initProgress, refreshChronicle, flashToast } from './progress.js?v=20260425a';
+import { initHall, refreshHall } from './hall.js?v=20260425a';
 import {
   getSession, onAuthStateChange,
   signUpEmailPassword, signInEmailPassword, signOut as supabaseSignOut,
   loadAll, upsertProfile,
   insertQuest, patchQuest, deleteQuest,
   insertLog, seedInitialQuests,
-} from './db.js';
+  fetchHallOfFame, fetchRealmStats,
+} from './db.js?v=20260425a';
 
 /* ---------- DOM helpers ---------- */
 export const $  = (sel, root = document) => root.querySelector(sel);
@@ -24,8 +25,10 @@ export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
 /* ---------- Constants ---------- */
 const CONFIG = {
+  // Quests seed runs once when a brand-new user has zero rows in the DB.
+  // `actions-library.json` powers the action picker and is purely static.
+  // The Hall of Fame + realm stats now come straight from Supabase RPCs.
   seedQuests: 'data/quests.seed.json',
-  seedHeroes: 'data/heroes.seed.json',
   actionsLib: 'data/actions-library.json',
 };
 
@@ -266,20 +269,19 @@ function renderHeroRecap(store) {
   const log    = store.get('log') ?? [];
   const profile = store.get('profile') ?? {};
   const session = store.get('session');
-  const heroes  = store.get('heroes') ?? [];
+  const realmStats = store.get('realmStats');
   const m = computeMetrics(quests, log);
 
-  // Signed-out visitors see realm-wide totals aggregated from the seed
-  // heroes so the three hero cards never flash as zero placeholders. Once
-  // signed in, the same cards flip to the player's personal metrics.
-  const realm = heroes.reduce(
-    (acc, h) => ({
-      activeQuests: acc.activeQuests + (Number(h.activeQuests) || 0),
-      totalXp:      acc.totalXp      + (Number(h.xp)           || 0),
-      chests:       acc.chests       + (Number(h.chestsOpened) || 0),
-    }),
-    { activeQuests: 0, totalXp: 0, chests: 0 },
-  );
+  // Signed-out visitors see realm-wide totals aggregated by the
+  // `realm_stats` SECURITY DEFINER function so the three hero cards
+  // reflect actual DB state. Signed-in users see their personal numbers.
+  const realm = realmStats
+    ? {
+        activeQuests: realmStats.activeQuests,
+        totalXp: realmStats.totalXp,
+        chests: realmStats.chestsOpened,
+      }
+    : { activeQuests: 0, totalXp: 0, chests: 0 };
 
   const display = session
     ? { activeQuests: m.activeQuests, totalXp: m.totalXp, chests: m.milestonesUnlocked }
@@ -354,14 +356,18 @@ export function addQuest(store, quest) {
   const list = [quest, ...(store.get('quests') ?? [])];
   store.set('quests', list);
   if (!currentUid) return;
-  insertQuest(currentUid, quest).catch(err => surfaceDbError('addQuest', err));
+  insertQuest(currentUid, quest)
+    .then(() => refreshPublicAggregates(store))
+    .catch(err => surfaceDbError('addQuest', err));
 }
 
 export function updateQuest(store, id, patch) {
   const list = (store.get('quests') ?? []).map(q => q.id === id ? { ...q, ...patch } : q);
   store.set('quests', list);
   if (!currentUid) return;
-  patchQuest(id, patch).catch(err => surfaceDbError('updateQuest', err));
+  patchQuest(id, patch)
+    .then(() => refreshPublicAggregates(store))
+    .catch(err => surfaceDbError('updateQuest', err));
 }
 
 export function removeQuest(store, id) {
@@ -373,21 +379,27 @@ export function removeQuest(store, id) {
   store.set('log', log);
 
   if (!currentUid) return;
-  deleteQuest(id).catch(err => surfaceDbError('removeQuest', err));
+  deleteQuest(id)
+    .then(() => refreshPublicAggregates(store))
+    .catch(err => surfaceDbError('removeQuest', err));
 }
 
 export function appendLog(store, entry) {
   const list = [entry, ...(store.get('log') ?? [])];
   store.set('log', list);
   if (!currentUid) return;
-  insertLog(currentUid, entry).catch(err => surfaceDbError('appendLog', err));
+  insertLog(currentUid, entry)
+    .then(() => refreshPublicAggregates(store))
+    .catch(err => surfaceDbError('appendLog', err));
 }
 
 export function updateProfile(store, patch) {
   const profile = { ...(store.get('profile') ?? {}), ...patch };
   store.set('profile', profile);
   if (!currentUid) return;
-  upsertProfile(currentUid, profile).catch(err => surfaceDbError('updateProfile', err));
+  upsertProfile(currentUid, profile)
+    .then(() => refreshPublicAggregates(store))
+    .catch(err => surfaceDbError('updateProfile', err));
 }
 
 export function exportEverything(store) {
@@ -429,6 +441,16 @@ async function hydrateForUser(store, userId) {
     profile: userData.profile ?? {},
   });
   await seedIfEmpty(store);
+}
+
+/** Re-pull the public Hall of Fame + realm stats. Fire-and-forget after
+ *  any mutation that could shift them; failures fall back to whatever's
+ *  already in the store. */
+function refreshPublicAggregates(store) {
+  Promise.all([fetchHallOfFame(25), fetchRealmStats()]).then(([heroes, realmStats]) => {
+    store.set('heroes', Array.isArray(heroes) ? heroes : []);
+    store.set('realmStats', realmStats);
+  }).catch(err => console.warn('[db] refreshPublicAggregates:', err));
 }
 
 /* ---------- Password rules + show/hide toggle ---------- */
@@ -538,6 +560,7 @@ async function signInWithEmailPassword(store, { email, password }) {
   const profile = store.get('profile') ?? {};
   store.set('session', shapeSession(session, profile.name));
   applyAuthState(store);
+  refreshPublicAggregates(store);
 
   return { ok: true, heroName: profile.name || user.user_metadata?.hero_name || 'Hero' };
 }
@@ -570,6 +593,7 @@ async function signUpWithEmailPassword(store, { email, password, heroName }) {
   const profile = store.get('profile') ?? {};
   store.set('session', shapeSession(session, profile.name || heroName));
   applyAuthState(store);
+  refreshPublicAggregates(store);
 
   return { ok: true, needsConfirm: false, heroName: profile.name || heroName };
 }
@@ -583,6 +607,7 @@ async function signOut(store) {
   currentUid = null;
   store.patch({ quests: [], log: [], profile: {}, session: null });
   applyAuthState(store);
+  refreshPublicAggregates(store);
   flashToast({
     kind: 'success',
     title: 'Signed out',
@@ -892,6 +917,7 @@ function buildEngravingSvg(dataUrl, W, H) {
     log: [],
     profile: {},
     heroes: [],
+    realmStats: null,
     actionsLib: {},
     session: null,
   });
@@ -899,13 +925,16 @@ function buildEngravingSvg(dataUrl, W, H) {
   // Expose for debugging
   window.__gq = { store, exportEverything };
 
-  // 1. Static seeds always load — the Hall of Fame is visible even to
-  //    signed-out visitors, so we need heroes regardless.
-  const [heroes, actionsLib] = await Promise.all([
-    fetchJSON(CONFIG.seedHeroes),
+  // 1. Public aggregates first — Hall of Fame + realm stats are visible
+  //    even to signed-out visitors via SECURITY DEFINER RPCs, so we always
+  //    pull them at boot. actionsLib stays as a static seed (UI helper data).
+  const [heroes, realmStats, actionsLib] = await Promise.all([
+    fetchHallOfFame(25),
+    fetchRealmStats(),
     fetchJSON(CONFIG.actionsLib),
   ]);
-  store.set('heroes', Array.isArray(heroes?.items) ? heroes.items : []);
+  store.set('heroes', Array.isArray(heroes) ? heroes : []);
+  store.set('realmStats', realmStats);
   store.set('actionsLib', actionsLib ?? {});
 
   // 2. Rehydrate from the Supabase session if one is already in
@@ -936,7 +965,8 @@ function buildEngravingSvg(dataUrl, W, H) {
   // Reactive rerender pipeline
   store.subscribe((key) => {
     if (key === 'session' || key === null) applyAuthState(store);
-    if (key === 'quests' || key === 'log' || key === 'profile' || key === 'session' || key === null) {
+    if (key === 'quests' || key === 'log' || key === 'profile' || key === 'session' ||
+        key === 'heroes' || key === 'realmStats' || key === null) {
       renderHeroRecap(store);
       refreshQuests();
       refreshHall();

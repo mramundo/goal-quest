@@ -9,8 +9,8 @@ import {
   $, $$, escapeHtml, escapeAttr, uid, clamp,
   fmt, progressFor,
   addQuest, updateQuest, removeQuest,
-} from './app.js';
-import { renderLogComposer } from './progress.js';
+} from './app.js?v=20260425a';
+import { renderLogComposer } from './progress.js?v=20260425a';
 
 /* Module state */
 let refs = {};

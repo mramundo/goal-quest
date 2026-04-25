@@ -8,7 +8,7 @@
 import {
   $, escapeHtml, escapeAttr, uid, clamp, fmt, progressFor,
   appendLog, updateQuest,
-} from './app.js';
+} from './app.js?v=20260425a';
 
 let refs = {};
 let storeRef = null;

@@ -1,11 +1,12 @@
 /* =========================================================
    Goal Quest — Hall of Fame
-   Blends seeded heroes with the player's current XP (sum of
-   logged points) and produces a ranked leaderboard. No levels,
-   no synthetic titles — just names, titles from seed, and XP.
+   Renders the leaderboard from the `hall_of_fame` SECURITY DEFINER
+   RPC (see scripts/db.js + the matching migration). Rows are sorted
+   server-side by XP DESC; the signed-in user's row is flagged with
+   `data-you="true"` for the highlight stripe.
    ========================================================= */
 
-import { $, escapeHtml, fmt, computeMetrics } from './app.js';
+import { $, escapeHtml, fmt } from './app.js?v=20260425a';
 
 let refs = {};
 let storeRef = null;
@@ -23,31 +24,32 @@ export function refreshHall() {
 function render() {
   if (!refs.list) return;
 
-  const quests  = storeRef.get('quests') ?? [];
-  const log     = storeRef.get('log') ?? [];
   const heroes  = storeRef.get('heroes') ?? [];
-  const profile = storeRef.get('profile') ?? {};
-
-  const m = computeMetrics(quests, log);
-
-  const you = {
-    id: 'you',
-    name: profile.name || 'Traveler',
-    title: profile.title || 'Your chronicle',
-    xp: m.totalXp,
-    you: true,
-  };
-
-  const all = [...heroes.map(h => ({ ...h })), you]
-    .sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0));
+  const session = storeRef.get('session');
+  const myId    = session?.userId ?? null;
 
   refs.list.innerHTML = '';
-  all.forEach((h, i) => {
+
+  if (heroes.length === 0) {
+    const li = document.createElement('li');
+    li.className = 'hall-row hall-row--empty';
+    li.innerHTML = `
+      <div class="hall-row__body">
+        <div class="hall-row__name">No heroes yet</div>
+        <div class="hall-row__title">Be the first to climb the leaderboard.</div>
+      </div>
+    `;
+    refs.list.appendChild(li);
+    return;
+  }
+
+  heroes.forEach((h, i) => {
     const rank = i + 1;
+    const isYou = myId && h.userId === myId;
     const li = document.createElement('li');
     li.className = 'hall-row';
     li.dataset.rank = rank;
-    if (h.you) li.dataset.you = 'true';
+    if (isYou) li.dataset.you = 'true';
     li.style.animationDelay = `${Math.min(i, 10) * 30}ms`;
 
     li.innerHTML = `
@@ -55,7 +57,7 @@ function render() {
       <div class="hall-row__body">
         <div class="hall-row__name">
           ${escapeHtml(h.name || '—')}
-          ${h.you ? '<span class="hall-row__you">you</span>' : ''}
+          ${isYou ? '<span class="hall-row__you">you</span>' : ''}
         </div>
         <div class="hall-row__title">${escapeHtml(h.title || '—')}</div>
       </div>
