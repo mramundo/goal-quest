@@ -408,11 +408,29 @@ svg { fill: currentColor; }
 
 /* Theme toggle shows the icon of the mode you're about to switch TO:
    sun while dark is active (click → light), moon while light is active
-   (click → dark). Only one is rendered at a time. */
-.theme-toggle__icon { display: none; }
-:root[data-mode="dark"] .theme-toggle__icon--sun,
-:root:not([data-mode]) .theme-toggle__icon--sun { display: block; }
-:root[data-mode="light"] .theme-toggle__icon--moon { display: block; }
+   (click → dark). Both icons are layered and cross-fade/rotate so the
+   swap animates instead of snapping. */
+#themeToggle { position: relative; overflow: hidden; }
+.theme-toggle__icon {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  transition: opacity .2s ease, transform .3s ease;
+}
+/* Default (dark, or no data-mode yet): sun visible, moon hidden + rotated. */
+.theme-toggle__icon--moon {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(-90deg);
+}
+/* Light mode: sun rotates out, moon rotates in. */
+:root[data-mode="light"] .theme-toggle__icon--sun {
+  opacity: 0;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+:root[data-mode="light"] .theme-toggle__icon--moon {
+  opacity: 1;
+  transform: translate(-50%, -50%) rotate(0deg);
+}
 
 /* =========================================================
    PALETTE PICKER
